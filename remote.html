@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIVRAJ — Remote Command Center</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Firebase SDK (from CDN — no install needed) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #06060e; --bg2: #0c0c1a; --surface: rgba(15,15,30,0.85);
+      --border: rgba(139,92,246,0.15); --purple: #8b5cf6; --purple-light: #a78bfa;
+      --purple-glow: rgba(139,92,246,0.4); --green: #22c55e; --red: #ef4444;
+      --amber: #f59e0b; --cyan: #06b6d4;
+      --text: #f1f0ff; --text-muted: rgba(241,240,255,0.55);
+      --font: 'Space Grotesk', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Login Screen ─────────────── */
+    #loginScreen {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 2rem;
+      background: radial-gradient(ellipse at 50% 30%, rgba(139,92,246,0.06) 0%, transparent 60%);
+    }
+    .login-orb {
+      width: 80px; height: 80px; border-radius: 50%; margin-bottom: 2rem;
+      background: radial-gradient(ellipse at 30% 30%, rgba(139,92,246,0.4), rgba(10,10,22,0.9));
+      border: 1.5px solid rgba(139,92,246,0.3);
+      box-shadow: 0 0 40px var(--purple-glow);
+      animation: float 4s ease-in-out infinite;
+      display: flex; align-items: center; justify-content: center; font-size: 2rem;
+    }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+    .login-title { font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .login-sub { color: var(--text-muted); margin-bottom: 2rem; font-size: 0.9rem; }
+
+    .login-box {
+      display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 360px;
+    }
+    .login-input {
+      padding: 0.9rem 1.2rem; border-radius: 12px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); font-size: 1rem; font-family: var(--font);
+      outline: none; transition: border-color 0.3s;
+    }
+    .login-input:focus { border-color: var(--purple); }
+    .login-btn {
+      padding: 0.9rem; border-radius: 12px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, var(--purple), #6d28d9); color: white;
+      font-weight: 700; font-size: 1rem; font-family: var(--font);
+      transition: all 0.3s; box-shadow: 0 4px 20px rgba(139,92,246,0.3);
+    }
+    .login-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(139,92,246,0.5); }
+    .login-error { color: var(--red); font-size: 0.85rem; text-align: center; display: none; }
+
+    /* ── Dashboard ─────────────── */
+    #dashboard { display: none; min-height: 100vh; }
+
+    .dash-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);
+      background: rgba(6,6,14,0.9); backdrop-filter: blur(20px);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .dash-logo { font-weight: 800; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+    .dash-logo .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .online { background: var(--green); box-shadow: 0 0 8px rgba(34,197,94,0.5); }
+    .offline { background: var(--red); box-shadow: 0 0 8px rgba(239,68,68,0.5); animation: blink 1.5s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .dash-status { font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .dash-logout {
+      padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-muted); cursor: pointer; font-size: 0.8rem;
+      font-family: var(--font); transition: all 0.3s;
+    }
+    .dash-logout:hover { border-color: var(--red); color: var(--red); }
+
+    .dash-body { max-width: 800px; margin: 0 auto; padding: 1.5rem; }
+
+    /* Status Cards */
+    .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.8rem; margin-bottom: 1.5rem; }
+    .status-card {
+      padding: 1rem; border-radius: 12px; background: var(--surface); border: 1px solid var(--border);
+      text-align: center;
+    }
+    .status-card .emoji { font-size: 1.5rem; }
+    .status-card .val { font-size: 1.1rem; font-weight: 700; margin-top: 0.3rem; }
+    .status-card .label { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+    /* Command Input */
+    .cmd-section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem;
+    }
+    .cmd-row { display: flex; gap: 0.6rem; }
+    .cmd-input {
+      flex: 1; padding: 0.85rem 1rem; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--text); font-size: 0.95rem; font-family: var(--font); outline: none;
+    }
+    .cmd-input:focus { border-color: var(--purple); }
+    .cmd-send {
+      padding: 0.85rem 1.5rem; border-radius: 10px; border: none;
+      background: var(--purple); color: white; font-weight: 700; cursor: pointer;
+      font-family: var(--font); transition: all 0.3s; white-space: nowrap;
+    }
+    .cmd-send:hover { background: var(--purple-light); }
+    .cmd-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .cmd-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.6rem; }
+
+    /* Quick Actions */
+    .quick-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+    .quick-btn {
+      padding: 0.5rem 0.9rem; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text-muted); cursor: pointer;
+      font-size: 0.8rem; font-family: var(--font); transition: all 0.3s;
+    }
+    .quick-btn:hover { border-color: var(--purple); color: var(--purple-light); background: rgba(139,92,246,0.05); }
+
+    /* Command History */
+    .history-section { margin-bottom: 2rem; }
+    .history-title { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .history-list { display: flex; flex-direction: column; gap: 0.6rem; }
+
+    .history-item {
+      padding: 0.8rem 1rem; border-radius: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .history-cmd { color: var(--purple-light); font-weight: 600; }
+    .history-result { color: var(--text-muted); margin-top: 0.3rem; font-family: var(--mono); font-size: 0.8rem; }
+    .history-time { color: var(--text-muted); font-size: 0.7rem; opacity: 0.6; margin-top: 0.2rem; }
+    .history-status { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+    .s-pending { background: rgba(245,158,11,0.15); color: var(--amber); }
+    .s-done { background: rgba(34,197,94,0.15); color: var(--green); }
+    .s-error { background: rgba(239,68,68,0.15); color: var(--red); }
+    .s-executing { background: rgba(139,92,246,0.15); color: var(--purple-light); }
+
+    .empty-state { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.9rem; }
+
+    /* Mobile */
+    @media (max-width: 600px) {
+      .status-grid { grid-template-columns: repeat(2, 1fr); }
+      .cmd-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div id="loginScreen">
+  <div class="login-orb">⚡</div>
+  <div class="login-title">SIVRAJ</div>
+  <div class="login-sub">Remote Command Center — Authorized Access Only</div>
+  <div class="login-box">
+    <input type="password" id="passInput" class="login-input" placeholder="Enter access code..." autocomplete="off" />
+    <button class="login-btn" onclick="attemptLogin()">🔓 Access SIVRAJ</button>
+    <div class="login-error" id="loginError">❌ Wrong access code. Try again.</div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div id="dashboard">
+  <div class="dash-nav">
+    <div class="dash-logo"><span class="dot offline" id="pcDot"></span> SIVRAJ</div>
+    <div class="dash-status"><span id="pcStatus">PC Offline</span></div>
+    <button class="dash-logout" onclick="logout()">Logout</button>
+  </div>
+
+  <div class="dash-body">
+    <!-- Status Cards -->
+    <div class="status-grid">
+      <div class="status-card"><div class="emoji">🖥️</div><div class="val" id="sPC">—</div><div class="label">PC Status</div></div>
+      <div class="status-card"><div class="emoji">🧠</div><div class="val" id="sRAM">—</div><div class="label">RAM</div></div>
+      <div class="status-card"><div class="emoji">⚡</div><div class="val" id="sCPU">—</div><div class="label">CPU</div></div>
+      <div class="status-card"><div class="emoji">🔋</div><div class="val" id="sBat">—</div><div class="label">Battery</div></div>
+    </div>
+
+    <!-- Command Input -->
+    <div class="cmd-section">
+      <div class="cmd-row">
+        <input type="text" id="cmdInput" class="cmd-input" placeholder="Talk to SIVRAJ..." autocomplete="off" />
+        <button class="cmd-send" id="sendBtn" onclick="sendCommand()">Send ⚡</button>
+      </div>
+      <div class="cmd-hint">Examples: "open chrome", "set volume 50", "what's my RAM usage", "lock pc"</div>
+
+      <div class="quick-grid">
+        <button class="quick-btn" onclick="quickCmd('open chrome')">🌐 Chrome</button>
+        <button class="quick-btn" onclick="quickCmd('open spotify')">🎵 Spotify</button>
+        <button class="quick-btn" onclick="quickCmd('screenshot')">📸 Screenshot</button>
+        <button class="quick-btn" onclick="quickCmd('lock pc')">🔒 Lock</button>
+        <button class="quick-btn" onclick="quickCmd('volume mute')">🔇 Mute</button>
+        <button class="quick-btn" onclick="quickCmd('volume 50')">🔊 50%</button>
+        <button class="quick-btn" onclick="quickCmd('system info')">📊 SysInfo</button>
+        <button class="quick-btn" onclick="quickCmd('open task manager')">⚙️ TaskMgr</button>
+      </div>
+    </div>
+
+    <!-- Command History -->
+    <div class="history-section">
+      <div class="history-title">Command History</div>
+      <div class="history-list" id="historyList">
+        <div class="empty-state">No commands yet. Send one above ↑</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// 🔥 FIREBASE CONFIG — PASTE YOUR CONFIG HERE
+// ══════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "PASTE_YOUR_AUTH_DOMAIN",
+  databaseURL: "PASTE_YOUR_DATABASE_URL",
+  projectId: "PASTE_YOUR_PROJECT_ID",
+  storageBucket: "PASTE_YOUR_STORAGE_BUCKET",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID",
+  appId: "PASTE_YOUR_APP_ID"
+};
+
+// 🔑 ACCESS CODE — Change this to your own secret password
+const ACCESS_CODE = "sivraj2026";
+
+// ══════════════════════════════════════════════════════════
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.database();
+
+let isLoggedIn = false;
+
+// ── Auth ─────────────────────────────────────────────
+function attemptLogin() {
+  const pass = document.getElementById('passInput').value;
+  if (pass === ACCESS_CODE) {
+    isLoggedIn = true;
+    sessionStorage.setItem('sivraj_auth', 'true');
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    startListening();
+  } else {
+    const err = document.getElementById('loginError');
+    err.style.display = 'block';
+    setTimeout(() => err.style.display = 'none', 3000);
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem('sivraj_auth');
+  location.reload();
+}
+
+// Auto-login if session active
+if (sessionStorage.getItem('sivraj_auth') === 'true') {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  isLoggedIn = true;
+  setTimeout(startListening, 500);
+}
+
+// Enter key to login/send
+document.getElementById('passInput').addEventListener('keydown', e => { if (e.key === 'Enter') attemptLogin(); });
+document.getElementById('cmdInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendCommand(); });
+
+// ── Send Command ─────────────────────────────────────
+function sendCommand() {
+  const input = document.getElementById('cmdInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const cmdId = 'cmd_' + Date.now();
+  db.ref('sivraj/commands/' + cmdId).set({
+    text: text,
+    status: 'pending',
+    result: '',
+    timestamp: Date.now(),
+    from: 'web'
+  });
+
+  input.value = '';
+  addHistoryItem(cmdId, text, 'pending', '', Date.now());
+}
+
+function quickCmd(text) {
+  document.getElementById('cmdInput').value = text;
+  sendCommand();
+}
+
+// ── Listen for Changes ───────────────────────────────
+function startListening() {
+  // Listen for PC online status
+  db.ref('sivraj/status').on('value', snap => {
+    const data = snap.val();
+    const dot = document.getElementById('pcDot');
+    const status = document.getElementById('pcStatus');
+
+    if (data && data.online && (Date.now() - data.lastSeen) < 120000) {
+      dot.className = 'dot online';
+      status.textContent = 'PC Online';
+      document.getElementById('sPC').textContent = 'Online';
+      document.getElementById('sPC').style.color = '#22c55e';
+      if (data.ram) document.getElementById('sRAM').textContent = data.ram;
+      if (data.cpu) document.getElementById('sCPU').textContent = data.cpu;
+      if (data.battery) document.getElementById('sBat').textContent = data.battery;
+    } else {
+      dot.className = 'dot offline';
+      status.textContent = 'PC Offline';
+      document.getElementById('sPC').textContent = 'Offline';
+      document.getElementById('sPC').style.color = '#ef4444';
+    }
+  });
+
+  // Listen for command updates (results coming back)
+  db.ref('sivraj/commands').orderByChild('timestamp').limitToLast(20).on('child_changed', snap => {
+    const data = snap.val();
+    updateHistoryItem(snap.key, data.status, data.result);
+  });
+
+  // Load recent commands
+  db.ref('sivraj/commands').orderByChild('timestamp').limitToLast(10).once('value', snap => {
+    const list = document.getElementById('historyList');
+    list.innerHTML = '';
+    const items = [];
+    snap.forEach(child => { items.push({ key: child.key, ...child.val() }); });
+    items.sort((a, b) => b.timestamp - a.timestamp);
+    if (items.length === 0) {
+      list.innerHTML = '<div class="empty-state">No commands yet. Send one above ↑</div>';
+    } else {
+      items.forEach(item => addHistoryItem(item.key, item.text, item.status, item.result, item.timestamp));
+    }
+  });
+}
+
+// ── History UI ───────────────────────────────────────
+function addHistoryItem(id, text, status, result, timestamp) {
+  const list = document.getElementById('historyList');
+  if (list.querySelector('.empty-state')) list.innerHTML = '';
+
+  const div = document.createElement('div');
+  div.className = 'history-item';
+  div.id = 'hist-' + id;
+  div.innerHTML = `
+    <div><span class="history-cmd">"${escHtml(text)}"</span>
+    <span class="history-status s-${status}">${status}</span></div>
+    ${result ? `<div class="history-result">${escHtml(result)}</div>` : ''}
+    <div class="history-time">${new Date(timestamp).toLocaleTimeString()}</div>
+  `;
+  list.prepend(div);
+}
+
+function updateHistoryItem(id, status, result) {
+  const el = document.getElementById('hist-' + id);
+  if (!el) return;
+  const statusEl = el.querySelector('.history-status');
+  if (statusEl) { statusEl.className = 'history-status s-' + status; statusEl.textContent = status; }
+  if (result) {
+    let resEl = el.querySelector('.history-result');
+    if (!resEl) { resEl = document.createElement('div'); resEl.className = 'history-result'; el.insertBefore(resEl, el.querySelector('.history-time')); }
+    resEl.textContent = result;
+  }
+}
+
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+
+</body>
+</html>
