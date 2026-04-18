@@ -1,242 +1,228 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SIVRAJ — The Autonomous Intelligence</title>
-  <meta name="description" content="SIVRAJ is an autonomous voice-first AI that controls your PC, sees your screen, and manages your room. Built by Shivam." />
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SIVRAJ — Autonomous Intelligence System</title>
+<meta name="description" content="SIVRAJ is an autonomous voice-first AI cockpit that controls your PC, sees your screen, and manages your room."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
 
+<!-- ═══ CMD PALETTE OVERLAY ═══ -->
+<div class="cmd-overlay" id="cmdOverlay">
+  <div class="cmd-palette">
+    <div class="cmd-palette-input-wrap">
+      <span class="cmd-palette-prefix">sivraj ›</span>
+      <input class="cmd-palette-input" id="cmdPaletteInput" placeholder="type a command..." autocomplete="off" spellcheck="false"/>
+      <span class="cmd-palette-esc"><kbd>esc</kbd> close</span>
+    </div>
+    <div class="cmd-palette-log" id="cmdPaletteLog"></div>
+  </div>
+</div>
+
 <!-- ═══ NAV ═══ -->
-<nav>
-  <div class="nav-left">
-    <a href="#" class="nav-logo"><span class="orb-dot"></span> SIVRAJ</a>
-    <ul class="nav-links">
-      <li><a href="#capabilities">Capabilities</a></li>
-      <li><a href="#architecture">Architecture</a></li>
-      <li><a href="#hardware">Hardware</a></li>
-    </ul>
-  </div>
-  <div class="nav-right">
-    <a href="remote.html" class="nav-btn-ghost">🔒 Remote</a>
-    <a href="#cta" class="nav-btn">Get Started</a>
-  </div>
+<nav id="mainNav">
+  <div class="nav-brand"><span class="nav-glow-dot"></span>SIVRAJ</div>
+  <div class="nav-status"><span class="nav-status-dot"></span>SYS_STATUS: ONLINE</div>
+  <button class="nav-cmd-btn" id="navCmdBtn"><kbd>⌘K</kbd> Command</button>
 </nav>
 
-<!-- ═══ HERO ═══ -->
+<!-- ═══ SECTION 1: HERO ═══ -->
 <section class="hero">
-  <canvas id="particles-canvas"></canvas>
-  <div class="hero-glow"></div>
-
-  <div class="orb-container">
-    <div class="orb-pulse"></div>
-    <div class="orb-pulse"></div>
-    <div class="orb-pulse"></div>
-    <div class="orb-3d"></div>
-  </div>
-
-  <div class="hero-tag"><span class="pulse"></span> v4.0 — Online & Autonomous</div>
-
-  <h1><span class="gradient-text">SIVRAJ</span></h1>
-  <p class="sub">An autonomous intelligence that controls your PC with voice,<br>sees your screen, and manages your room.</p>
-
-  <div class="hero-ctas">
-    <a href="https://github.com/cyberexplainn-ai/SIVRAJ" class="cta-primary">View Source →</a>
-    <a href="#capabilities" class="cta-ghost">Explore</a>
-  </div>
-
-  <div class="metrics">
-    <div class="metric">
-      <div class="metric-val" data-count="28">0</div>
-      <div class="metric-label">System Commands</div>
+  <canvas id="particles"></canvas>
+  <div class="hero-ambient"></div>
+  <div class="hero-content">
+    <div class="orb-wrap">
+      <div class="orb-ring"></div><div class="orb-ring"></div><div class="orb-ring"></div>
+      <div class="orb" id="orb"></div>
     </div>
-    <div class="metric">
-      <div class="metric-val" data-count="13">0</div>
-      <div class="metric-label">AI Providers</div>
+    <div class="uptime-display">
+      <span class="uptime-val">SIVRAJ</span><span class="uptime-sep">/</span>
+      <span class="uptime-val">ONLINE</span><span class="uptime-sep">/</span>
+      <span id="uptimeStr" class="uptime-val">0d 00h 00m 00s</span>
+      <span class="uptime-cursor"></span>
     </div>
-    <div class="metric">
-      <div class="metric-val" data-count="5">0</div>
-      <div class="metric-label">Agent Turns</div>
-    </div>
-    <div class="metric">
-      <div class="metric-val" data-count="100">0</div>
-      <div class="metric-label">ms Latency</div>
+    <div class="hero-tag"><span class="dot-green"></span>v4.0 — All Systems Nominal</div>
+    <div class="module-grid">
+      <div class="mod-card"><span class="mod-dot dot-g"></span><span class="mod-name">VOICE</span><span class="mod-status">Groq Whisper active</span></div>
+      <div class="mod-card"><span class="mod-dot dot-g"></span><span class="mod-name">VISION</span><span class="mod-status">GPT-4o Vision ready</span></div>
+      <div class="mod-card"><span class="mod-dot dot-a"></span><span class="mod-name">ESP32</span><span class="mod-status">sensors: connected</span></div>
+      <div class="mod-card"><span class="mod-dot dot-g"></span><span class="mod-name">FIREBASE</span><span class="mod-status">relay: live</span></div>
+      <div class="mod-card"><span class="mod-dot dot-g"></span><span class="mod-name">LLM</span><span class="mod-status">13 providers loaded</span></div>
+      <div class="mod-card"><span class="mod-dot dot-g"></span><span class="mod-name">MEMORY</span><span class="mod-status">context: active</span></div>
     </div>
   </div>
 </section>
 
-<div class="section-divider"></div>
+<div class="sec-divider"></div>
 
-<!-- ═══ CAPABILITIES ═══ -->
-<section id="capabilities">
-  <div class="section-head center reveal">
-    <div class="section-label">Capabilities</div>
-    <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
-    <p class="section-desc">Voice, vision, automation, intelligence — all working together in one unified system.</p>
-  </div>
-
-  <div class="bento">
-    <div class="bento-card span-2 reveal">
-      <div class="bento-icon">🎤</div>
-      <h3>Voice-First Interface</h3>
-      <p>Always-on wake word detection powered by Groq Whisper. Say "Sivraj" and your machine responds instantly. Neural TTS speaks back with sentence-level streaming for sub-500ms perceived latency.</p>
+<!-- ═══ SECTION 2: COMMAND INTERFACE ═══ -->
+<section class="sec cmd-section">
+  <div class="sec-inner">
+    <div class="sec-head reveal">
+      <div class="sec-label">Command Interface</div>
+      <div class="sec-title">Say the word. Watch it happen.</div>
+      <div class="sec-sub">A live demo of SIVRAJ's voice-to-action pipeline. Type your own or watch the auto-demo loop.</div>
     </div>
-    <div class="bento-card reveal" data-accent="cyan">
-      <div class="bento-icon">👁️</div>
-      <h3>Screen Vision</h3>
-      <p>Captures your screen and sends it to GPT-4o or Gemini Vision. SIVRAJ can describe, analyze, and act on what it sees.</p>
-    </div>
-    <div class="bento-card reveal" data-accent="green">
-      <div class="bento-icon">🔄</div>
-      <h3>Multi-Step Agent</h3>
-      <p>Chains up to 5 sequential actions. "Create folder, add README, open in VS Code" — all from one command.</p>
-    </div>
-    <div class="bento-card reveal" data-accent="amber">
-      <div class="bento-icon">⚡</div>
-      <h3>28 System Commands</h3>
-      <p>Open apps, control volume, manage files, press hotkeys, search the web, run shell commands — complete PC control.</p>
-    </div>
-    <div class="bento-card span-2 reveal">
-      <div class="bento-icon">🧠</div>
-      <h3>13 AI Providers — Zero Lock-in</h3>
-      <p>Groq, OpenAI, Claude, Gemini, DeepSeek, Mistral, Ollama (local), Cohere, Cloudflare, and more. All free-tier compatible. Switch providers with one click. Your keys never leave your machine.</p>
+    <div class="cmd-panel reveal">
+      <div class="cmd-bar-wrap">
+        <span class="cmd-prefix">sivraj ›</span>
+        <input class="cmd-input" id="cmdInput" placeholder="try: open chrome and spotify..." autocomplete="off" spellcheck="false"/>
+        <span class="cmd-shortcut"><kbd>⌘K</kbd> to focus</span>
+      </div>
+      <div class="cmd-log" id="cmdLog"></div>
+      <div class="cmd-hint"><span>auto-demo running</span><span>·</span><span>type to override</span><span>·</span><kbd>Enter</kbd> to send<span>·</span><kbd>Esc</kbd> to resume</div>
     </div>
   </div>
 </section>
 
-<div class="section-divider"></div>
+<div class="sec-divider"></div>
 
-<!-- ═══ ARCHITECTURE ═══ -->
-<section id="architecture">
-  <div class="section-head center reveal">
-    <div class="section-label">Architecture</div>
-    <h2 class="section-title">Three systems. One intelligence.</h2>
-    <p class="section-desc">Desktop, cloud, and physical — seamlessly connected through Firebase.</p>
-  </div>
-
-  <div class="arch-flow reveal">
-    <div class="arch-box">
-      <div class="icon">🔮</div>
-      <h4>Desktop Orb</h4>
-      <p>Electron app · LLM engine · Voice I/O · Full PC control</p>
+<!-- ═══ SECTION 3: INTELLIGENCE ═══ -->
+<section class="sec">
+  <div class="sec-inner">
+    <div class="sec-head reveal">
+      <div class="sec-label">Neural Performance</div>
+      <div class="sec-title">Which brain is fastest right now.</div>
+      <div class="sec-sub">Real latency benchmarks across SIVRAJ's AI provider stack.</div>
     </div>
-    <div class="arch-connector">⟷</div>
-    <div class="arch-box">
-      <div class="icon">☁️</div>
-      <h4>sivraj.in</h4>
-      <p>Firebase relay · Remote API · Real-time sync</p>
-    </div>
-    <div class="arch-connector">⟷</div>
-    <div class="arch-box">
-      <div class="icon">⚡</div>
-      <h4>ESP32</h4>
-      <p>Physical orb · Room sensors · Smart home control</p>
-    </div>
-  </div>
-
-  <div class="terminal-wrap reveal">
-    <div class="terminal-bar">
-      <span class="t-dot r"></span>
-      <span class="t-dot y"></span>
-      <span class="t-dot g"></span>
-    </div>
-    <div class="terminal-body" id="terminalBody">
-      <div><span class="prompt">~</span> <span class="cursor"></span></div>
+    <div class="intel-grid reveal">
+      <div class="intel-card">
+        <div class="intel-title">Provider Latency <span>live benchmark</span></div>
+        <div id="latencyBars"></div>
+      </div>
+      <div class="intel-card">
+        <div class="intel-title">Top Commands <span>last 30 days</span></div>
+        <div id="freqBars"></div>
+      </div>
+      <div class="intel-card full">
+        <div class="intel-title">System Intelligence</div>
+        <div class="metric-row">
+          <div class="metric-card"><div class="metric-val" data-target="1.2" data-suffix="M">0</div><div class="metric-lbl">tokens processed this month</div></div>
+          <div class="metric-card"><div class="metric-val" data-target="94" data-suffix="%">0</div><div class="metric-lbl">intent recognition accuracy</div></div>
+          <div class="metric-card"><div class="metric-val" data-target="340" data-suffix="ms">0</div><div class="metric-lbl">avg end-to-end response</div></div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
-<div class="section-divider"></div>
+<div class="sec-divider"></div>
 
-<!-- ═══ COMMANDS ═══ -->
-<section id="commands">
-  <div class="section-head center reveal">
-    <div class="section-label">Voice Commands</div>
-    <h2 class="section-title">Just say the word.</h2>
-  </div>
-
-  <div class="cmd-list">
-    <div class="cmd-row reveal"><span class="cmd-voice">"Sivraj, open Chrome and Spotify"</span><span class="cmd-icon">→</span><span class="cmd-action">launches both instantly</span></div>
-    <div class="cmd-row reveal"><span class="cmd-voice">"What's on my screen?"</span><span class="cmd-icon">→</span><span class="cmd-action">screenshot → vision → describe</span></div>
-    <div class="cmd-row reveal"><span class="cmd-voice">"Set volume to 40%"</span><span class="cmd-icon">→</span><span class="cmd-action">[ACTION:volume:40] ✓</span></div>
-    <div class="cmd-row reveal"><span class="cmd-voice">"Create project with README"</span><span class="cmd-icon">→</span><span class="cmd-action">multi-step chain → done</span></div>
-    <div class="cmd-row reveal"><span class="cmd-voice">"Remind me in 30 min"</span><span class="cmd-icon">→</span><span class="cmd-action">⏰ timer set → speaks</span></div>
-    <div class="cmd-row reveal"><span class="cmd-voice">"Lock my PC"</span><span class="cmd-icon">→</span><span class="cmd-action">rundll32 → locked 🔒</span></div>
-  </div>
-</section>
-
-<div class="section-divider"></div>
-
-<!-- ═══ HARDWARE ═══ -->
-<section id="hardware">
-  <div class="section-head center reveal">
-    <div class="section-label">Hardware</div>
-    <h2 class="section-title">ESP32 — The physical body.</h2>
-    <p class="section-desc">SIVRAJ enters the real world. Voice, lights, sensors, and control.</p>
-  </div>
-
-  <div class="hw-grid">
-    <div class="hw-card reveal">
-      <div class="icon">🔮</div>
-      <h3>Physical Orb</h3>
-      <p>A real glowing orb that mirrors the AI state.</p>
-      <ul>
-        <li>WS2812B LED ring (24 LEDs)</li>
-        <li>Purple idle · Red listening · Green speaking</li>
-        <li>Syncs with desktop orb via WebSocket</li>
-      </ul>
+<!-- ═══ SECTION 4: SENSOR & ROOM ═══ -->
+<section class="sec">
+  <div class="sec-inner">
+    <div class="sec-head reveal">
+      <div class="sec-label">Physical Layer</div>
+      <div class="sec-title">ESP32 × Smart Room</div>
+      <div class="sec-sub">Live sensor data from the hardware layer. Updates every 5 seconds.</div>
     </div>
-    <div class="hw-card reveal">
-      <div class="icon">🏠</div>
-      <h3>Smart Room</h3>
-      <p>Voice-control your entire room.</p>
-      <ul>
-        <li>4-channel relay (lights, fan, AC)</li>
-        <li>DHT22 temp + humidity sensor</li>
-        <li>PIR motion detection</li>
-      </ul>
+    <div class="sensor-grid reveal">
+      <div class="sensor-panel">
+        <div style="font-size:.72rem;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:1rem">Sensor Readouts</div>
+        <div class="sensor-row"><div class="sensor-key"><div class="sensor-icon">🌡</div>Temperature</div><div><div class="sensor-val" id="sTemp">28.4°C</div><div class="sparkline" id="sparkTemp"></div></div></div>
+        <div class="sensor-row"><div class="sensor-key"><div class="sensor-icon">💧</div>Humidity</div><div><div class="sensor-val" id="sHum">62%</div><div class="sparkline" id="sparkHum"></div></div></div>
+        <div class="sensor-row"><div class="sensor-key"><div class="sensor-icon">👁</div>Motion</div><div class="sensor-val" id="sMotion">No activity</div></div>
+        <div class="sensor-row"><div class="sensor-key"><div class="sensor-icon">🔊</div>Sound level</div><div class="sensor-val" id="sSound">42 dB</div></div>
+      </div>
+      <div class="toggle-panel">
+        <div style="font-size:.72rem;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:1rem">Room Control State</div>
+        <div class="toggle-row"><div class="toggle-left"><div class="toggle-name">LIGHTS</div><div class="toggle-sub">Bedroom ceiling</div></div><div class="toggle-pill pill-on"><span class="pill-dot"></span>ON</div></div>
+        <div class="toggle-row"><div class="toggle-left"><div class="toggle-name">FAN</div><div class="toggle-sub">Speed: —</div></div><div class="toggle-pill pill-off"><span class="pill-dot"></span>OFF</div></div>
+        <div class="toggle-row"><div class="toggle-left"><div class="toggle-name">AC</div><div class="toggle-sub">Set: 24°C</div></div><div class="toggle-pill pill-off"><span class="pill-dot"></span>OFF</div></div>
+        <div class="toggle-row"><div class="toggle-left"><div class="toggle-name">MONITOR</div><div class="toggle-sub">Main display</div></div><div class="toggle-pill pill-on"><span class="pill-dot"></span>ON</div></div>
+      </div>
     </div>
-    <div class="hw-card reveal">
-      <div class="icon">💾</div>
-      <h3>Local Storage</h3>
-      <p>SD card stores sensor data + syncs to PC.</p>
-      <ul>
-        <li>MicroSD via SPI interface</li>
-        <li>JSON/CSV sensor logs</li>
-        <li>Auto-sync to PC via WiFi API</li>
-      </ul>
-    </div>
-    <div class="hw-card reveal">
-      <div class="icon">🎤</div>
-      <h3>Voice I/O</h3>
-      <p>Standalone voice control from anywhere.</p>
-      <ul>
-        <li>INMP441 I2S microphone</li>
-        <li>MAX98357A amplifier + speaker</li>
-        <li>Audio → API → Whisper → LLM</li>
-      </ul>
+    <div class="temp-chart-wrap reveal">
+      <div class="temp-chart-title">24h Temperature — Room sensor log</div>
+      <canvas id="tempChart"></canvas>
     </div>
   </div>
 </section>
 
-<div class="section-divider"></div>
+<div class="sec-divider"></div>
+
+<!-- ═══ SECTION 5: PIPELINE ═══ -->
+<section class="sec">
+  <div class="sec-inner">
+    <div class="sec-head reveal">
+      <div class="sec-label">Signal Flow</div>
+      <div class="sec-title">From voice to action in under 500ms.</div>
+      <div class="sec-sub">The full pipeline — audio capture through physical execution. Hover each node.</div>
+    </div>
+    <div class="pipeline-wrap reveal" id="pipelineWrap">
+      <canvas id="dotsCanvas"></canvas>
+      <div class="pipeline-nodes">
+        <div class="pipe-node" data-tip="Captures audio via INMP441 I2S mic. Wake word: Sivraj" data-lat="~0ms" data-tech="PyAudio + Porcupine"><div class="pipe-node-box"><span class="pipe-node-icon">🎤</span><span class="pipe-node-label">VOICE</span></div><div class="pipe-tooltip"></div></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-node" data-tip="Speech-to-text via Groq Whisper API" data-lat="~80ms" data-tech="Groq Whisper"><div class="pipe-node-box"><span class="pipe-node-icon">⚡</span><span class="pipe-node-label">STT</span></div><div class="pipe-tooltip"></div></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-node" data-tip="Intent classification and response generation" data-lat="~120ms" data-tech="13 providers"><div class="pipe-node-box"><span class="pipe-node-icon">🧠</span><span class="pipe-node-label">LLM</span></div><div class="pipe-tooltip"></div></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-node" data-tip="Executes 28 system commands on your PC" data-lat="~10ms" data-tech="Python subprocess"><div class="pipe-node-box"><span class="pipe-node-icon">⚙</span><span class="pipe-node-label">ACTION</span></div><div class="pipe-tooltip"></div></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-node" data-tip="Task complete. Neural TTS speaks the result." data-lat="~40ms" data-tech="Neural TTS streaming"><div class="pipe-node-box"><span class="pipe-node-icon">✓</span><span class="pipe-node-label">DONE</span></div><div class="pipe-tooltip"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="sec-divider"></div>
+
+<!-- ═══ SECTION 6: SYSTEM LOG ═══ -->
+<section class="sec">
+  <div class="sec-inner">
+    <div class="sec-head reveal">
+      <div class="sec-label">System Log</div>
+      <div class="sec-title">Live event stream.</div>
+      <div class="sec-sub">Real-time feed of what SIVRAJ is processing right now.</div>
+    </div>
+    <div class="syslog-wrap reveal">
+      <div class="syslog-bar"><span class="syslog-dot sd-r"></span><span class="syslog-dot sd-y"></span><span class="syslog-dot sd-g"></span><span class="syslog-title">sivraj — system.log — live</span></div>
+      <div class="syslog-body" id="syslogBody"></div>
+    </div>
+  </div>
+</section>
+
+<div class="sec-divider"></div>
+
+<!-- ═══ SECTION 7: HARDWARE ═══ -->
+<section class="sec">
+  <div class="sec-inner">
+    <div class="sec-head reveal" style="text-align:center">
+      <div class="sec-label">Hardware</div>
+      <div class="sec-title">The physical body.</div>
+    </div>
+    <div class="hw-grid">
+      <div class="hw-card reveal"><div class="hw-cat">Orb</div><div class="hw-name">Physical Intelligence</div><ul class="hw-list"><li>WS2812B LED ring — 24 LEDs</li><li>Purple idle · Red listening · Green speaking</li><li>Syncs via WebSocket in real time</li></ul></div>
+      <div class="hw-card reveal"><div class="hw-cat">Smart Room</div><div class="hw-name">Environment Control</div><ul class="hw-list"><li>4-channel relay — lights, fan, AC</li><li>DHT22 temp + humidity sensor</li><li>PIR motion detection</li></ul></div>
+      <div class="hw-card reveal"><div class="hw-cat">Storage</div><div class="hw-name">Local Data Layer</div><ul class="hw-list"><li>MicroSD via SPI interface</li><li>JSON/CSV sensor logs</li><li>Auto-sync to PC via WiFi API</li></ul></div>
+      <div class="hw-card reveal"><div class="hw-cat">Audio I/O</div><div class="hw-name">Voice Hardware</div><ul class="hw-list"><li>INMP441 I2S microphone</li><li>MAX98357A amplifier + speaker</li><li>Audio → Whisper → LLM → TTS</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<div class="sec-divider"></div>
 
 <!-- ═══ CTA ═══ -->
-<section class="cta-section" id="cta">
-  <h2 class="reveal section-title" style="margin:0 auto .8rem">Ready to begin?</h2>
-  <p class="reveal">Open source. Self-hosted. Yours forever.</p>
-  <div class="hero-ctas reveal" style="justify-content:center">
-    <a href="https://github.com/cyberexplainn-ai/SIVRAJ" class="cta-primary">Clone Repository →</a>
-    <a href="remote.html" class="cta-ghost">🔒 Remote Access</a>
+<section class="sec" style="text-align:center;padding:7rem 2rem;position:relative">
+  <div class="sec-label" style="margin-bottom:.8rem">Ready to begin?</div>
+  <div class="sec-title" style="max-width:500px;margin:0 auto .8rem">Open source. Self-hosted. Yours.</div>
+  <div style="color:var(--text2);font-size:.9rem">Clone it, run it, own it. No subscription. No cloud dependency.</div>
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:2rem;flex-wrap:wrap">
+    <a href="https://github.com/cyberexplainn-ai/SIVRAJ" style="padding:.65rem 1.5rem;border-radius:8px;background:var(--purple);color:#fff;font-weight:600;font-size:.88rem;transition:all .25s;box-shadow:0 0 20px rgba(124,58,237,0.2)">View Source on GitHub →</a>
+    <a href="remote.html" style="padding:.65rem 1.5rem;border-radius:8px;background:transparent;color:var(--text2);font-weight:500;font-size:.88rem;border:1px solid var(--border2);transition:all .25s">Remote Access</a>
   </div>
 </section>
 
 <!-- ═══ FOOTER ═══ -->
+<div class="footer-line"></div>
 <footer>
-  <p>Built by <a href="#">Shivam</a> · SIVRAJ — Shivam's Intelligent Virtual Reasoning and Judgment</p>
+  <div class="footer-left">SIVRAJ — Shivam's Intelligent Virtual Reasoning & Judgment · Built by Shivam · v4.0</div>
+  <div class="footer-right"><a href="https://github.com/cyberexplainn-ai/SIVRAJ">GitHub ↗</a></div>
 </footer>
 
 <script src="script.js"></script>
