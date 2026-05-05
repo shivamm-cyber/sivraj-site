@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SIVRAJ — Findings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+<div class="scanline"></div>
+<nav class="sidebar" id="appSidebar"></nav>
+<div class="main">
+  <div class="topbar" id="appTopbar"></div>
+  <div class="page">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total Findings</div><div class="stat-value cyan" id="fTotal">0</div></div>
+      <div class="stat-card"><div class="stat-label">Critical</div><div class="stat-value red" id="fCrit">0</div></div>
+      <div class="stat-card"><div class="stat-label">High</div><div class="stat-value amber" id="fHigh">0</div></div>
+      <div class="stat-card"><div class="stat-label">Open</div><div class="stat-value" id="fOpen" style="color:var(--orange)">0</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="panel-title-dot"></span>VULNERABILITY DATABASE</div>
+        <div style="display:flex;gap:6px">
+          <select class="select" id="fSevFilter"><option value="all">All Severity</option><option value="Critical">Critical</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select>
+          <select class="select" id="fStatusFilter"><option value="all">All Status</option><option value="Open">Open</option><option value="Fixed">Fixed</option><option value="Accepted">Accepted</option></select>
+          <button class="btn btn-cyan" onclick="addFinding()">+ Add Finding</button>
+        </div>
+      </div>
+      <div class="panel-body" style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th>#</th><th>Title</th><th>Target</th><th>Severity</th><th>CVSS</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="findingsTable"></tbody>
+        </table>
+      </div>
+      <div class="panel-footer">
+        <button class="btn" onclick="exportFindings()">📥 Export CSV</button>
+        <button class="btn" onclick="summaryFindings()">📊 Summary</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+<script>
+let findings = lsGet('findings', [
+  { id:47, title:'SQL Injection in /login', target:'acme.com', severity:'Critical', cvss:9.8, status:'Open' },
+  { id:46, title:'Reflected XSS in search', target:'acme.com', severity:'High', cvss:6.1, status:'Open' },
+  { id:45, title:'Open S3 bucket (public read)', target:'test.io', severity:'High', cvss:7.5, status:'Fixed' },
+  { id:44, title:'Weak SSH password policy', target:'lab.local', severity:'Medium', cvss:4.8, status:'Open' },
+  { id:43, title:'Missing HSTS header', target:'acme.com', severity:'Low', cvss:3.2, status:'Open' },
+  { id:42, title:'Directory listing enabled', target:'test.io', severity:'Medium', cvss:5.3, status:'Fixed' },
+  { id:41, title:'Default admin credentials', target:'lab.local', severity:'Critical', cvss:9.1, status:'Open' },
+  { id:40, title:'CORS misconfiguration', target:'acme.com', severity:'Medium', cvss:5.0, status:'Accepted' },
+]);
+function render() {
+  const sevF = document.getElementById('fSevFilter').value;
+  const stF = document.getElementById('fStatusFilter').value;
+  const filtered = findings.filter(f => (sevF === 'all' || f.severity === sevF) && (stF === 'all' || f.status === stF));
+  document.getElementById('fTotal').textContent = findings.length;
+  document.getElementById('fCrit').textContent = findings.filter(f => f.severity === 'Critical').length;
+  document.getElementById('fHigh').textContent = findings.filter(f => f.severity === 'High').length;
+  document.getElementById('fOpen').textContent = findings.filter(f => f.status === 'Open').length;
+  const sevBadge = s => s === 'Critical' ? 'badge-crit' : s === 'High' ? 'badge-high' : s === 'Medium' ? 'badge-med' : 'badge-low';
+  const stBadge = s => s === 'Open' ? 'badge-high' : s === 'Fixed' ? 'badge-low' : 'badge-info';
+  document.getElementById('findingsTable').innerHTML = filtered.map(f => `
+    <tr>
+      <td style="color:var(--text3);font-family:var(--mono)">#${String(f.id).padStart(3,'0')}</td>
+      <td style="font-weight:600">${f.title}</td>
+      <td style="color:var(--cyan)">${f.target}</td>
+      <td><span class="tbl-badge ${sevBadge(f.severity)}">${f.severity}</span></td>
+      <td style="font-family:var(--mono)">${f.cvss}</td>
+      <td><span class="tbl-badge ${stBadge(f.status)}">${f.status}</span></td>
+      <td>
+        <button class="btn" onclick="toggleStatus(${f.id})" style="font-size:.6rem">${f.status==='Open'?'Fix':'Reopen'}</button>
+        <button class="btn btn-red" onclick="delFinding(${f.id})" style="font-size:.6rem">✕</button>
+      </td>
+    </tr>
+  `).join('');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  renderTopbar('FINDINGS', '🚩', '');
+  render();
+  document.getElementById('fSevFilter').addEventListener('change', render);
+  document.getElementById('fStatusFilter').addEventListener('change', render);
+});
+function addFinding() {
+  const title = prompt('Finding title:'); if (!title) return;
+  const target = prompt('Target:') || '—';
+  const severity = prompt('Severity (Critical/High/Medium/Low):', 'Medium') || 'Medium';
+  const cvss = parseFloat(prompt('CVSS score:', '5.0')) || 5.0;
+  const id = Math.max(0, ...findings.map(f=>f.id)) + 1;
+  findings.unshift({ id, title, target, severity, cvss, status:'Open' });
+  lsSet('findings', findings); render();
+}
+function toggleStatus(id) { const f = findings.find(x=>x.id===id); if(f) f.status = f.status==='Open'?'Fixed':'Open'; lsSet('findings',findings); render(); }
+function delFinding(id) { if(confirm('Delete finding #'+id+'?')) { findings = findings.filter(f=>f.id!==id); lsSet('findings',findings); render(); } }
+function exportFindings() { const csv = 'ID,Title,Target,Severity,CVSS,Status\n' + findings.map(f=>`${f.id},"${f.title}",${f.target},${f.severity},${f.cvss},${f.status}`).join('\n'); navigator.clipboard.writeText(csv); alert('CSV copied to clipboard!'); }
+function summaryFindings() { alert(`Summary:\nCritical: ${findings.filter(f=>f.severity==='Critical').length}\nHigh: ${findings.filter(f=>f.severity==='High').length}\nMedium: ${findings.filter(f=>f.severity==='Medium').length}\nLow: ${findings.filter(f=>f.severity==='Low').length}\nOpen: ${findings.filter(f=>f.status==='Open').length}\nFixed: ${findings.filter(f=>f.status==='Fixed').length}`); }
+</script>
+</body>
+</html>

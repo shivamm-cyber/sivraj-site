@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SIVRAJ — Hardware Fleet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="app.css"/>
+<style>
+.hw-detail{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.2rem;margin-top:12px}
+.hw-detail-title{font-family:var(--mono);font-size:.85rem;font-weight:700;color:var(--cyan);margin-bottom:.8rem}
+.hw-detail-row{display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--border);font-size:.78rem}
+.hw-detail-row:last-child{border:none}
+.hw-detail-k{color:var(--text3)}
+.hw-detail-v{color:var(--text);font-family:var(--mono)}
+.packet-viewer{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.8rem;font-family:var(--mono);font-size:.7rem;max-height:200px;overflow-y:auto;margin-top:.8rem}
+.pkt{padding:1px 0;color:var(--text3)}
+.pkt .src{color:var(--cyan)}.pkt .dst{color:var(--green)}.pkt .proto{color:var(--amber)}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+<nav class="sidebar" id="appSidebar"></nav>
+<div class="main">
+  <div class="topbar" id="appTopbar"></div>
+  <div class="page">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total Devices</div><div class="stat-value cyan">3</div></div>
+      <div class="stat-card"><div class="stat-label">Online</div><div class="stat-value green">2</div></div>
+      <div class="stat-card"><div class="stat-label">Offline</div><div class="stat-value red">1</div></div>
+      <div class="stat-card"><div class="stat-label">Alerts</div><div class="stat-value amber">1</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title"><span class="panel-title-dot"></span>ESP32 FLEET</div><button class="topbar-btn topbar-btn-primary" style="font-size:.65rem">+ Add Device</button></div>
+      <div class="panel-body" style="overflow-x:auto">
+        <table class="tbl" id="hwTable">
+          <thead><tr><th>Device</th><th>Status</th><th>Mode</th><th>IP</th><th>Signal</th><th>Last Seen</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr onclick="selectDevice(0)" style="cursor:pointer"><td style="font-weight:600">ESP32-1</td><td><span class="tbl-badge badge-low">🟢 Online</span></td><td>Network Scan</td><td style="font-family:var(--mono)">10.0.0.51</td><td>-52 dBm</td><td>2s ago</td><td><button class="btn btn-cyan" style="font-size:.6rem">View</button></td></tr>
+            <tr onclick="selectDevice(1)" style="cursor:pointer"><td style="font-weight:600">ESP32-2</td><td><span class="tbl-badge badge-low">🟢 Online</span></td><td>Deauth Monitor</td><td style="font-family:var(--mono)">10.0.0.52</td><td>-48 dBm</td><td>5s ago</td><td><button class="btn btn-cyan" style="font-size:.6rem">View</button></td></tr>
+            <tr onclick="selectDevice(2)" style="cursor:pointer"><td style="font-weight:600">ESP32-3</td><td><span class="tbl-badge badge-crit">🔴 Offline</span></td><td>—</td><td style="font-family:var(--mono)">—</td><td>—</td><td>2h ago</td><td><button class="btn" style="font-size:.6rem">Wake</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Device Detail -->
+    <div class="hw-detail" id="hwDetail">
+      <div class="hw-detail-title" id="hwDetailName">ESP32-1 — Detail</div>
+      <div class="hw-detail-row"><span class="hw-detail-k">📡 Mode</span><span class="hw-detail-v">Network Implant</span></div>
+      <div class="hw-detail-row"><span class="hw-detail-k">🔋 Uptime</span><span class="hw-detail-v">4h 22m</span></div>
+      <div class="hw-detail-row"><span class="hw-detail-k">📶 Signal</span><span class="hw-detail-v">-52 dBm (Good)</span></div>
+      <div class="hw-detail-row"><span class="hw-detail-k">🌡 Board Temp</span><span class="hw-detail-v">42°C</span></div>
+      <div class="hw-detail-row"><span class="hw-detail-k">💾 Free RAM</span><span class="hw-detail-v">112 KB</span></div>
+      <div style="margin-top:1rem;font-size:.75rem;color:var(--text3);font-family:var(--mono);margin-bottom:.4rem">LIVE PACKET CAPTURE</div>
+      <div class="packet-viewer" id="packetViewer"></div>
+      <div style="display:flex;gap:6px;margin-top:.8rem">
+        <button class="btn btn-cyan">Send Command</button>
+        <button class="btn">Update Firmware</button>
+        <button class="btn btn-red">Reboot</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  renderTopbar('HARDWARE', '📡', '');
+  // Packet simulation
+  const macs = ['00:1A:2B:3C:4D:5E','00:AA:BB:CC:DD:EE','DE:AD:BE:EF:00:01','FF:FF:FF:FF:FF:FF'];
+  const protos = ['TCP 443','TCP 80','UDP 53','ARP','TCP 22','ICMP'];
+  const pv = document.getElementById('packetViewer');
+  function addPacket() {
+    const ts = new Date().toLocaleTimeString('en-IN',{hour12:false});
+    const src = macs[Math.floor(Math.random()*macs.length)];
+    const dst = macs[Math.floor(Math.random()*macs.length)];
+    const proto = protos[Math.floor(Math.random()*protos.length)];
+    const flags = proto.startsWith('TCP') ? ['SYN','ACK','PSH','FIN'][Math.floor(Math.random()*4)] : '';
+    const div = document.createElement('div'); div.className='pkt';
+    div.innerHTML = `[${ts}] <span class="src">${src}</span> → <span class="dst">${dst}</span> <span class="proto">${proto}</span> ${flags}`;
+    pv.appendChild(div);
+    if (pv.children.length > 50) pv.removeChild(pv.firstChild);
+    pv.scrollTop = pv.scrollHeight;
+  }
+  for(let i=0;i<8;i++) addPacket();
+  setInterval(addPacket, 2000);
+});
+function selectDevice(i) {
+  const names = ['ESP32-1','ESP32-2','ESP32-3'];
+  document.getElementById('hwDetailName').textContent = names[i] + ' — Detail';
+}
+</script>
+</body>
+</html>

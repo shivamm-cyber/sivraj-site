@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SIVRAJ — Targets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+<div class="scanline"></div>
+<nav class="sidebar" id="appSidebar"></nav>
+<div class="main">
+  <div class="topbar" id="appTopbar"></div>
+  <div class="page">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total Targets</div><div class="stat-value cyan" id="targetCount">0</div></div>
+      <div class="stat-card"><div class="stat-label">In Progress</div><div class="stat-value amber" id="targetActive">0</div></div>
+      <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-value green" id="targetDone">0</div></div>
+      <div class="stat-card"><div class="stat-label">Total Findings</div><div class="stat-value red" id="targetFindings">0</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="panel-title-dot"></span>TARGET DATABASE</div>
+        <div style="display:flex;gap:6px">
+          <input class="input" id="targetSearch" placeholder="Search targets..." style="width:200px"/>
+          <button class="btn btn-cyan" onclick="addTarget()">+ Add Target</button>
+        </div>
+      </div>
+      <div class="panel-body" style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th>Target</th><th>Type</th><th>Status</th><th>Findings</th><th>Critical</th><th>Last Op</th><th>Actions</th></tr></thead>
+          <tbody id="targetTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  renderTopbar('TARGETS', '📋', '<button class="topbar-btn" onclick="importTargets()">📥 Import</button>');
+  let targets = lsGet('targets', [
+    { name:'acme.com', type:'Domain', status:'Completed', findings:12, critical:2, lastOp:'2026-05-04' },
+    { name:'test.io', type:'Domain', status:'In Progress', findings:7, critical:1, lastOp:'2026-05-05' },
+    { name:'192.168.1.0/24', type:'Network', status:'Completed', findings:4, critical:0, lastOp:'2026-04-28' },
+    { name:'lab.local', type:'AD', status:'Scoping', findings:0, critical:0, lastOp:'—' },
+  ]);
+  function render() {
+    const search = document.getElementById('targetSearch').value.toLowerCase();
+    const filtered = targets.filter(t => t.name.toLowerCase().includes(search));
+    document.getElementById('targetCount').textContent = targets.length;
+    document.getElementById('targetActive').textContent = targets.filter(t => t.status === 'In Progress').length;
+    document.getElementById('targetDone').textContent = targets.filter(t => t.status === 'Completed').length;
+    document.getElementById('targetFindings').textContent = targets.reduce((s,t) => s + t.findings, 0);
+    const statusBadge = s => s === 'Completed' ? 'badge-low' : s === 'In Progress' ? 'badge-info' : 'badge-med';
+    document.getElementById('targetTable').innerHTML = filtered.map((t, i) => `
+      <tr>
+        <td style="color:var(--cyan);font-weight:600">${t.name}</td>
+        <td>${t.type}</td>
+        <td><span class="tbl-badge ${statusBadge(t.status)}">${t.status}</span></td>
+        <td>${t.findings}</td>
+        <td>${t.critical > 0 ? `<span class="tbl-badge badge-crit">${t.critical}</span>` : '0'}</td>
+        <td>${t.lastOp}</td>
+        <td><button class="btn btn-cyan" onclick="startOp(${i})" style="font-size:.6rem">${t.status==='Scoping'?'Start':'View'}</button> <button class="btn btn-red" onclick="delTarget(${i})" style="font-size:.6rem">✕</button></td>
+      </tr>
+    `).join('');
+  }
+  render();
+  document.getElementById('targetSearch').addEventListener('input', render);
+  window._targets = targets; window._render = render;
+});
+function addTarget() {
+  const name = prompt('Target (domain, IP, or network):');
+  if (!name) return;
+  const type = prompt('Type (Domain/Network/AD/Cloud):', 'Domain') || 'Domain';
+  window._targets.push({ name, type, status:'Scoping', findings:0, critical:0, lastOp:'—' });
+  lsSet('targets', window._targets); window._render();
+}
+function delTarget(i) { if (confirm('Delete?')) { window._targets.splice(i,1); lsSet('targets', window._targets); window._render(); } }
+function startOp(i) { lsSet('currentOp', { target:window._targets[i].name, progress:0, elapsed:'0h 0m', findings:0 }); location.href='/ops'; }
+function importTargets() { alert('Import from file — paste targets (one per line)'); }
+</script>
+</body>
+</html>

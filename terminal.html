@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SIVRAJ — Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+<div class="scanline"></div>
+<nav class="sidebar" id="appSidebar"></nav>
+<div class="main">
+  <div class="topbar" id="appTopbar"></div>
+  <div class="page" style="padding:.5rem">
+    <div class="term-wrap">
+      <div class="term-bar">
+        <span class="term-dot td-r"></span><span class="term-dot td-y"></span><span class="term-dot td-g"></span>
+        <span class="term-title">sivraj — terminal — <span id="termSess">session-001</span></span>
+        <div style="margin-left:auto;display:flex;gap:6px">
+          <button class="btn" onclick="clearTerm()" style="font-size:.6rem">Clear</button>
+          <button class="btn" onclick="exportTerm()" style="font-size:.6rem">Export</button>
+        </div>
+      </div>
+      <div class="term-body" id="termBody"></div>
+      <div class="term-input-wrap">
+        <span class="term-prompt">sivraj ›</span>
+        <input class="term-input" id="termInput" placeholder="type a command..." autocomplete="off" spellcheck="false"/>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+<script>
+const TERM_HISTORY = [];
+let histIdx = -1;
+const COMMANDS = {
+  help: () => [
+    '  ╔══════════════════════════════════════════════════════╗',
+    '  ║  SIVRAJ v4.0 — Command Reference                   ║',
+    '  ╚══════════════════════════════════════════════════════╝',
+    '  help              Show this help',
+    '  clear             Clear terminal',
+    '  status            System status',
+    '  scan <target>     Quick nmap scan',
+    '  osint <target>    OSINT lookup',
+    '  breach <email>    Breach check',
+    '  dorking <domain>  Google dork queries',
+    '  tools             List all tools',
+    '  sensors           ESP32 sensor data',
+    '  recon <domain>    Full recon workflow',
+    '  pentest <url>     Web pentest workflow',
+    '  history           Command history',
+    '',
+    '  All 54 tools available. Type tool_name for info.',
+  ],
+  status: () => [
+    '  ┌─ SYSTEM STATUS ─────────────────────┐',
+    '  │ Status:    ONLINE                    │',
+    '  │ Uptime:    12d 04h 22m               │',
+    '  │ Tools:     54 loaded                 │',
+    '  │ Provider:  Groq/Llama (120ms)        │',
+    '  │ Memory:    47,231 chunks             │',
+    '  │ ESP32-1:   🟢 Online (10.0.0.51)    │',
+    '  │ ESP32-2:   🟢 Online (10.0.0.52)    │',
+    '  │ ESP32-3:   🔴 Offline               │',
+    '  └──────────────────────────────────────┘',
+  ],
+  sensors: () => [
+    '  🌡 Temperature:  28.4°C',
+    '  💧 Humidity:     62%',
+    '  🔊 Sound:       42 dB',
+    '  👁 Motion:      No activity',
+    '  📡 ESP32-1:     scanning (ch 1-13)',
+    '  📡 ESP32-2:     monitoring deauth',
+  ],
+  tools: () => ['  54 tools loaded across 11 categories.', '  Visit /tools for the full searchable arsenal.', '  Categories: OSINT, Network, Web, Crypto, Forensics, Recon, Exploit, Escalation, Cloud, Workflow, Reports'],
+  history: () => TERM_HISTORY.length ? TERM_HISTORY.map((h,i) => `  ${i+1}. ${h}`) : ['  No commands yet.'],
+};
+
+function addLine(text, cls = '') {
+  const body = document.getElementById('termBody');
+  const div = document.createElement('div');
+  div.className = 'term-line' + (cls ? ' ' + cls : '');
+  div.textContent = text;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+function processCmd(raw) {
+  const cmd = raw.trim();
+  if (!cmd) return;
+  TERM_HISTORY.push(cmd);
+  histIdx = TERM_HISTORY.length;
+  addLine('sivraj › ' + cmd, 'cmd');
+  const parts = cmd.split(/\s+/);
+  const base = parts[0].toLowerCase();
+  const arg = parts.slice(1).join(' ');
+
+  if (base === 'clear') { document.getElementById('termBody').innerHTML = ''; return; }
+  if (COMMANDS[base]) { COMMANDS[base]().forEach(l => addLine(l)); return; }
+
+  // Simulated tool execution
+  if (['scan','nmap'].includes(base)) {
+    addLine(`  Starting nmap scan on ${arg || '192.168.1.0/24'}...`, 'info');
+    setTimeout(() => { addLine('  Scan complete — 23 hosts, 47 open ports', 'info'); }, 1500);
+    return;
+  }
+  if (base === 'osint') {
+    addLine(`  Running OSINT lookup on: ${arg}`, 'info');
+    setTimeout(() => { addLine('  Found: 5 social profiles, 2 breaches, domain registered 2019', 'info'); }, 1200);
+    return;
+  }
+  if (base === 'breach') {
+    addLine(`  Checking breaches for: ${arg}`, 'info');
+    setTimeout(() => { addLine('  ⚠ Found in 3 breaches: LinkedIn (2012), Adobe (2013), Collection #1', 'info'); }, 1000);
+    return;
+  }
+  if (base === 'dorking') {
+    addLine(`  Generating Google dorks for: ${arg}`, 'info');
+    setTimeout(() => { addLine('  Generated 60+ dork queries across 8 categories', 'info'); }, 800);
+    return;
+  }
+  if (base === 'recon') {
+    addLine(`  Starting full recon workflow on: ${arg}`, 'info');
+    const steps = ['cert_search','tech_stack','dns_lookup','ssl_check','headers','email_security','web_archive','google_dorking'];
+    steps.forEach((s,i) => setTimeout(() => addLine(`  [${i+1}/8] ${s} ✅`, 'info'), (i+1)*800));
+    setTimeout(() => addLine('  ✅ Full recon complete. 8 tools executed.', 'cmd'), steps.length*800+200);
+    return;
+  }
+  if (base === 'pentest') {
+    addLine(`  Starting web pentest workflow on: ${arg}`, 'info');
+    const steps = ['directory_fuzzer','parameter_finder','sqli_exploit','xss_framework','headers','ssl'];
+    steps.forEach((s,i) => setTimeout(() => addLine(`  [${i+1}/6] ${s} ✅`, 'info'), (i+1)*900));
+    setTimeout(() => addLine('  ✅ Web pentest complete. 6 tools executed.', 'cmd'), steps.length*900+200);
+    return;
+  }
+  addLine(`  Unknown command: ${base}. Type 'help' for available commands.`, 'err');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderTopbar('TERMINAL', '▸', '<button class="topbar-btn" onclick="window.open(\'/terminal\',\'_blank\')">⛶ Fullscreen</button>');
+  // Welcome
+  addLine('╔══════════════════════════════════════════════════════╗');
+  addLine('║  SIVRAJ v4.0 — Autonomous Intelligence Terminal     ║');
+  addLine('║  Type \'help\' for available commands                  ║');
+  addLine('║  Connected to: ESP32-1, ESP32-2                     ║');
+  addLine('╚══════════════════════════════════════════════════════╝');
+  addLine('');
+
+  const input = document.getElementById('termInput');
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { processCmd(input.value); input.value = ''; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); if (histIdx > 0) { histIdx--; input.value = TERM_HISTORY[histIdx]; } }
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (histIdx < TERM_HISTORY.length-1) { histIdx++; input.value = TERM_HISTORY[histIdx]; } else { histIdx = TERM_HISTORY.length; input.value = ''; } }
+  });
+  input.focus();
+});
+function clearTerm() { document.getElementById('termBody').innerHTML = ''; }
+function exportTerm() { const lines = [...document.querySelectorAll('.term-line')].map(l=>l.textContent).join('\n'); navigator.clipboard.writeText(lines); alert('Terminal output copied!'); }
+</script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SIVRAJ — Workflows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="app.css"/>
+<style>
+.wf-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.2rem;margin-bottom:12px;transition:border-color .2s}
+.wf-card:hover{border-color:var(--border2)}
+.wf-name{font-family:var(--mono);font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:.5rem;display:flex;align-items:center;gap:8px}
+.wf-chain{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:.8rem 0}
+.wf-step{padding:.35rem .65rem;border-radius:5px;font-size:.68rem;font-family:var(--mono);font-weight:600;background:var(--surface2);border:1px solid var(--border);color:var(--text2)}
+.wf-arrow{color:var(--text3);font-size:.7rem;padding:0 .25rem}
+.wf-actions{display:flex;gap:6px;margin-top:.6rem}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+<nav class="sidebar" id="appSidebar"></nav>
+<div class="main">
+  <div class="topbar" id="appTopbar"></div>
+  <div class="page">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Saved Workflows</div><div class="stat-value cyan" id="wfCount">0</div></div>
+      <div class="stat-card"><div class="stat-label">Total Runs</div><div class="stat-value green" id="wfRuns">0</div></div>
+      <div class="stat-card"><div class="stat-label">Avg Duration</div><div class="stat-value" id="wfAvg">—</div></div>
+    </div>
+    <div id="wfList"></div>
+  </div>
+</div>
+<script src="app.js"></script>
+<script>
+const WORKFLOWS = [
+  { name:'🎯 Quick Recon', desc:'Fast domain reconnaissance', steps:['dns_lookup','subdomain_enum','port_scanner','tech_stack_detect','generate_report'], runs:12, lastRun:'2h ago' },
+  { name:'🔓 Full Web App Test', desc:'Complete web application pentest', steps:['directory_fuzzer','parameter_finder','sqli_exploit','xss_framework','header_analysis','ssl_check','generate_report'], runs:8, lastRun:'1d ago' },
+  { name:'📡 WiFi Security Audit', desc:'Wireless network security assessment', steps:['wifi_scanner','arp_scan','network_scan','firewall_audit','generate_report'], runs:5, lastRun:'3d ago' },
+  { name:'🌐 Full Recon (Auto)', desc:'Automated 8-tool deep recon chain', steps:['certificate_search','tech_stack_detect','dns_lookup','ssl_check','header_analysis','email_spoof_check','web_archive','google_dorking'], runs:15, lastRun:'30m ago', builtin:true },
+  { name:'💀 Web Pentest (Auto)', desc:'Automated 6-tool exploitation chain', steps:['directory_fuzzer','parameter_finder','sqli_exploit','xss_framework','header_analysis','ssl_check'], runs:9, lastRun:'4h ago', builtin:true },
+  { name:'🗺 Attack Surface Map', desc:'Full attack surface visualization', steps:['dns_lookup','subdomain_enum','certificate_search','tech_stack_detect','google_dorking','social_osint'], runs:6, lastRun:'1d ago', builtin:true },
+  { name:'🔑 Credential Audit', desc:'Password and breach checking workflow', steps:['breach_check','password_audit','hash_tools','email_osint_deep'], runs:4, lastRun:'5d ago' },
+  { name:'☁ Cloud Security Sweep', desc:'AWS + Docker + K8s full audit', steps:['aws_audit','docker_audit','k8s_audit','generate_report'], runs:2, lastRun:'1w ago' },
+];
+document.addEventListener('DOMContentLoaded', () => {
+  renderTopbar('WORKFLOWS', '⚡', '<button class="topbar-btn topbar-btn-primary" onclick="newWorkflow()">+ New Workflow</button>');
+  document.getElementById('wfCount').textContent = WORKFLOWS.length;
+  document.getElementById('wfRuns').textContent = WORKFLOWS.reduce((s,w) => s+w.runs, 0);
+  document.getElementById('wfAvg').textContent = '~8m';
+  document.getElementById('wfList').innerHTML = WORKFLOWS.map((w,i) => `
+    <div class="wf-card">
+      <div class="wf-name">${w.name} ${w.builtin ? '<span class="tbl-badge badge-info" style="font-size:.5rem">BUILTIN</span>' : ''}</div>
+      <div style="font-size:.75rem;color:var(--text3)">${w.desc}</div>
+      <div class="wf-chain">${w.steps.map((s,j) => `<span class="wf-step">${s}</span>${j<w.steps.length-1?'<span class="wf-arrow">→</span>':''}`).join('')}</div>
+      <div style="font-family:var(--mono);font-size:.65rem;color:var(--text3)">Runs: ${w.runs} · Last: ${w.lastRun}</div>
+      <div class="wf-actions">
+        <button class="btn btn-cyan" onclick="runWf(${i})">▸ Run</button>
+        <button class="btn" onclick="editWf(${i})">✏ Edit</button>
+        <button class="btn" onclick="exportWf(${i})">📥 Export</button>
+      </div>
+    </div>
+  `).join('');
+});
+function runWf(i) { const w = WORKFLOWS[i]; alert('Running: ' + w.name + '\nChain: ' + w.steps.join(' → ')); }
+function editWf(i) { alert('Edit workflow — drag & drop tool editor coming soon'); }
+function exportWf(i) { const w = WORKFLOWS[i]; navigator.clipboard.writeText(JSON.stringify(w, null, 2)); alert('Workflow copied to clipboard!'); }
+function newWorkflow() { alert('Create new workflow — select tools and define chain order'); }
+</script>
+</body>
+</html>

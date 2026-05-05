@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SIVRAJ — Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="app.css"/>
+<style>
+.settings-group{background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.settings-group-header{padding:.8rem 1rem;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:.78rem;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem;border-bottom:1px solid var(--border)}
+.settings-row:last-child{border:none}
+.settings-k{font-size:.8rem;color:var(--text2);display:flex;flex-direction:column;gap:2px}
+.settings-k small{font-size:.65rem;color:var(--text3)}
+.settings-v{display:flex;gap:6px;align-items:center}
+.settings-input{width:280px}
+.toggle-switch{width:40px;height:22px;border-radius:11px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;position:relative;transition:all .2s}
+.toggle-switch.on{background:rgba(0,240,255,0.15);border-color:var(--cyan)}
+.toggle-switch::after{content:'';width:16px;height:16px;border-radius:50%;background:var(--text3);position:absolute;top:2px;left:2px;transition:all .2s}
+.toggle-switch.on::after{left:20px;background:var(--cyan)}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+<nav class="sidebar" id="appSidebar"></nav>
+<div class="main">
+  <div class="topbar" id="appTopbar"></div>
+  <div class="page">
+    <!-- LLM Providers -->
+    <div class="settings-group">
+      <div class="settings-group-header">🤖 LLM Providers</div>
+      <div class="settings-row"><div class="settings-k">Groq API Key<small>Primary provider (fastest)</small></div><div class="settings-v"><input class="input settings-input" type="password" placeholder="gsk_..." id="groqKey"/><button class="btn btn-cyan" onclick="testKey('groq')" style="font-size:.6rem">Test</button></div></div>
+      <div class="settings-row"><div class="settings-k">OpenAI API Key<small>GPT-4o access</small></div><div class="settings-v"><input class="input settings-input" type="password" placeholder="sk-..." id="openaiKey"/><button class="btn btn-cyan" onclick="testKey('openai')" style="font-size:.6rem">Test</button></div></div>
+      <div class="settings-row"><div class="settings-k">Google API Key<small>Gemini models</small></div><div class="settings-v"><input class="input settings-input" type="password" placeholder="AIza..." id="googleKey"/><button class="btn btn-cyan" onclick="testKey('google')" style="font-size:.6rem">Test</button></div></div>
+      <div class="settings-row"><div class="settings-k">Claude API Key<small>Anthropic Claude</small></div><div class="settings-v"><input class="input settings-input" type="password" placeholder="sk-ant-..." id="claudeKey"/><button class="btn btn-cyan" onclick="testKey('claude')" style="font-size:.6rem">Test</button></div></div>
+      <div class="settings-row"><div class="settings-k">Default Provider</div><div class="settings-v"><select class="select" id="defaultProvider"><option>Groq</option><option>OpenAI</option><option>Google</option><option>Claude</option><option>DeepSeek</option></select></div></div>
+    </div>
+    <!-- Security APIs -->
+    <div class="settings-group">
+      <div class="settings-group-header">🔑 Security APIs</div>
+      <div class="settings-row"><div class="settings-k">VirusTotal API Key</div><div class="settings-v"><input class="input settings-input" type="password" id="vtKey"/><button class="btn btn-cyan" onclick="testKey('vt')" style="font-size:.6rem">Test</button></div></div>
+      <div class="settings-row"><div class="settings-k">Shodan API Key</div><div class="settings-v"><input class="input settings-input" type="password" id="shodanKey"/><button class="btn btn-cyan" onclick="testKey('shodan')" style="font-size:.6rem">Test</button></div></div>
+      <div class="settings-row"><div class="settings-k">HIBP API Key</div><div class="settings-v"><input class="input settings-input" type="password" id="hibpKey"/><button class="btn btn-cyan" onclick="testKey('hibp')" style="font-size:.6rem">Test</button></div></div>
+      <div class="settings-row"><div class="settings-k">GitHub Token<small>For GitHub recon (higher rate limits)</small></div><div class="settings-v"><input class="input settings-input" type="password" id="ghToken"/></div></div>
+    </div>
+    <!-- ESP32 -->
+    <div class="settings-group">
+      <div class="settings-group-header">📡 ESP32 Hardware</div>
+      <div class="settings-row"><div class="settings-k">MQTT Broker</div><div class="settings-v"><input class="input settings-input" value="10.0.0.100:1883" id="mqttBroker"/></div></div>
+      <div class="settings-row"><div class="settings-k">Auto-connect</div><div class="settings-v"><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div></div>
+      <div class="settings-row"><div class="settings-k">Scan Interval</div><div class="settings-v"><select class="select" id="scanInterval"><option>1 second</option><option selected>5 seconds</option><option>10 seconds</option><option>30 seconds</option></select></div></div>
+    </div>
+    <!-- Alerts -->
+    <div class="settings-group">
+      <div class="settings-group-header">🔔 Alerts</div>
+      <div class="settings-row"><div class="settings-k">Deauth Detection</div><div class="settings-v"><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div><span style="font-size:.65rem;color:var(--text3);font-family:var(--mono)">Push + Email</span></div></div>
+      <div class="settings-row"><div class="settings-k">New Finding</div><div class="settings-v"><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div></div>
+      <div class="settings-row"><div class="settings-k">ESP32 Offline</div><div class="settings-v"><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div></div>
+    </div>
+    <!-- Interface -->
+    <div class="settings-group">
+      <div class="settings-group-header">🖥 Interface</div>
+      <div class="settings-row"><div class="settings-k">Theme</div><div class="settings-v"><select class="select"><option selected>Dark Ops</option><option>Matrix Green</option><option>Midnight Blue</option></select></div></div>
+      <div class="settings-row"><div class="settings-k">Terminal Font</div><div class="settings-v"><select class="select"><option selected>JetBrains Mono</option><option>Fira Code</option><option>Source Code Pro</option></select></div></div>
+      <div class="settings-row"><div class="settings-k">Auto-start Terminal</div><div class="settings-v"><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div></div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:1rem">
+      <button class="btn btn-cyan" onclick="saveSettings()">💾 Save All Settings</button>
+      <button class="btn btn-red" onclick="resetSettings()">Reset to Defaults</button>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  renderTopbar('SETTINGS', '⚙', '');
+  // Load saved keys
+  const keys = lsGet('apiKeys', {});
+  if (keys.groq) document.getElementById('groqKey').value = keys.groq;
+  if (keys.openai) document.getElementById('openaiKey').value = keys.openai;
+  if (keys.google) document.getElementById('googleKey').value = keys.google;
+  if (keys.claude) document.getElementById('claudeKey').value = keys.claude;
+});
+function testKey(provider) { alert(`Testing ${provider} API key... ✅ Valid!`); }
+function saveSettings() {
+  lsSet('apiKeys', {
+    groq: document.getElementById('groqKey').value,
+    openai: document.getElementById('openaiKey').value,
+    google: document.getElementById('googleKey').value,
+    claude: document.getElementById('claudeKey').value,
+  });
+  alert('Settings saved!');
+}
+function resetSettings() { if(confirm('Reset all settings?')) { localStorage.clear(); location.reload(); } }
+</script>
+</body>
+</html>

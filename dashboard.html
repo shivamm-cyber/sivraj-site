@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SIVRAJ — Command Center</title>
+<meta name="description" content="SIVRAJ CIC — Autonomous Cybersecurity Intelligence Command Center"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+<div class="scanline"></div>
+<nav class="sidebar" id="appSidebar"></nav>
+<div class="main">
+  <div class="topbar" id="appTopbar"></div>
+  <div class="page" id="dashPage">
+
+    <!-- STATUS BAR -->
+    <div class="dash-status-bar">
+      <div class="dash-status-item"><span class="dash-status-dot dot-online"></span>SYSTEM ONLINE</div>
+      <div class="dash-status-item">UPTIME <span id="dashUptime" class="dash-status-val">0d 00h 00m</span></div>
+      <div class="dash-status-item">VERSION <span class="dash-status-val">4.0.0</span></div>
+      <div class="dash-status-item">TOOLS <span class="dash-status-val">54</span></div>
+    </div>
+
+    <!-- TOP STATS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Active Target</div>
+        <div class="stat-value cyan" id="activeTarget">NONE</div>
+        <div class="stat-sub"><button class="btn btn-cyan" onclick="setTarget()" style="margin-top:6px">Set Target →</button></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Live Sensors</div>
+        <div class="stat-value green" id="sensorCount">2<span style="font-size:.7rem;color:var(--text3)"> / 3</span></div>
+        <div class="stat-sub">ESP32-1 🟢 ESP32-2 🟢 ESP32-3 🔴</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Findings Today</div>
+        <div class="stat-value amber" id="findingsToday">0</div>
+        <div class="stat-sub">0 critical, 0 high</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Fastest Provider</div>
+        <div class="stat-value" id="fastestProvider">Groq</div>
+        <div class="stat-sub" id="fastestLatency">~120ms</div>
+      </div>
+    </div>
+
+    <!-- TWO COLUMN LAYOUT -->
+    <div class="dash-grid">
+      <!-- LEFT: QUICK ACTIONS + NEURAL -->
+      <div class="dash-col">
+        <!-- QUICK ACTIONS -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title"><span class="panel-title-dot"></span>QUICK ACTIONS</div>
+          </div>
+          <div class="panel-body" style="display:flex;flex-wrap:wrap;gap:8px">
+            <button class="btn btn-cyan" onclick="quickAction('scan')">🔍 Quick Scan</button>
+            <button class="btn btn-cyan" onclick="quickAction('breach')">📧 Breach Check</button>
+            <button class="btn btn-cyan" onclick="quickAction('osint')">🌐 OSINT Lookup</button>
+            <button class="btn btn-cyan" onclick="quickAction('report')">📊 New Report</button>
+            <button class="btn btn-cyan" onclick="quickAction('recon')">⚡ Full Recon</button>
+            <button class="btn btn-cyan" onclick="quickAction('pentest')">🔓 Web Pentest</button>
+          </div>
+          <div class="panel-footer">
+            <span style="font-size:.65rem;color:var(--text3);font-family:var(--mono)">Last: <span id="lastCmd">nmap -sV 192.168.1.0/24</span> · <span id="lastCmdTime">2m ago</span></span>
+          </div>
+        </div>
+
+        <!-- NEURAL STATUS -->
+        <div class="panel" style="margin-top:12px">
+          <div class="panel-header">
+            <div class="panel-title"><span class="panel-title-dot"></span>NEURAL STATUS</div>
+            <span style="font-size:.6rem;color:var(--green);font-family:var(--mono)">● LIVE</span>
+          </div>
+          <div class="panel-body" id="neuralBars"></div>
+        </div>
+
+        <!-- LIVE SENSORS -->
+        <div class="panel" style="margin-top:12px">
+          <div class="panel-header">
+            <div class="panel-title"><span class="panel-title-dot"></span>LIVE SENSORS</div>
+          </div>
+          <div class="panel-body">
+            <div class="sensor-row-dash"><span class="sensor-k">🌡 Temperature</span><span class="sensor-v" id="dTemp">28.4°C</span></div>
+            <div class="sensor-row-dash"><span class="sensor-k">💧 Humidity</span><span class="sensor-v" id="dHum">62%</span></div>
+            <div class="sensor-row-dash"><span class="sensor-k">🔊 Sound Level</span><span class="sensor-v" id="dSound">42 dB</span></div>
+            <div class="sensor-row-dash"><span class="sensor-k">👁 Motion</span><span class="sensor-v" id="dMotion">No activity</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: ACTIVITY + LOG -->
+      <div class="dash-col">
+        <!-- RECENT ACTIVITY -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title"><span class="panel-title-dot"></span>RECENT ACTIVITY</div>
+            <a href="/logs" class="btn" style="font-size:.6rem">View All →</a>
+          </div>
+          <div class="panel-body" style="max-height:240px;overflow-y:auto" id="recentActivity"></div>
+        </div>
+
+        <!-- SYSTEM LOG LIVE -->
+        <div class="panel" style="margin-top:12px">
+          <div class="panel-header" style="background:var(--bg)">
+            <div class="panel-title">
+              <span class="term-dot td-r" style="width:7px;height:7px"></span>
+              <span class="term-dot td-y" style="width:7px;height:7px"></span>
+              <span class="term-dot td-g" style="width:7px;height:7px"></span>
+              <span style="margin-left:4px">SYSTEM LOG — LIVE</span>
+            </div>
+          </div>
+          <div class="panel-body" style="font-family:var(--mono);font-size:.72rem;max-height:280px;overflow-y:auto;background:var(--bg)" id="syslogLive"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.dash-status-bar{display:flex;gap:16px;padding:.6rem 1rem;border-radius:8px;background:var(--bg2);border:1px solid var(--border);margin-bottom:1.5rem;flex-wrap:wrap}
+.dash-status-item{font-family:var(--mono);font-size:.68rem;color:var(--text3);display:flex;align-items:center;gap:6px}
+.dash-status-val{color:var(--text2)}
+.dash-status-dot{width:6px;height:6px;border-radius:50%}
+.dot-online{background:var(--green);box-shadow:0 0 8px rgba(16,185,129,0.5);animation:s-pulse 3s ease-in-out infinite}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dash-col{display:flex;flex-direction:column}
+.sensor-row-dash{display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;border-bottom:1px solid var(--border)}
+.sensor-row-dash:last-child{border:none}
+.sensor-k{font-size:.78rem;color:var(--text2)}
+.sensor-v{font-family:var(--mono);font-size:.82rem;color:var(--text);font-weight:500}
+.neural-row{display:flex;align-items:center;gap:10px;margin-bottom:.6rem}
+.neural-name{font-family:var(--mono);font-size:.72rem;color:var(--text2);width:100px;flex-shrink:0}
+.neural-bar-wrap{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.neural-bar{height:100%;border-radius:3px;transition:width 1s ease}
+.neural-ms{font-family:var(--mono);font-size:.68rem;color:var(--text3);width:55px;text-align:right}
+.neural-badge{font-size:.55rem;padding:1px 6px;border-radius:100px;font-family:var(--mono);font-weight:600}
+.activity-row{display:flex;gap:8px;padding:.35rem 0;border-bottom:1px solid var(--border);font-size:.75rem;align-items:flex-start}
+.activity-row:last-child{border:none}
+.activity-ts{font-family:var(--mono);font-size:.65rem;color:var(--text3);flex-shrink:0;padding-top:1px}
+.activity-icon{flex-shrink:0}
+.activity-msg{color:var(--text2);flex:1}
+.syslog-line{display:flex;gap:6px;padding:2px 0;color:var(--text3);font-size:.72rem}
+.syslog-line .ts{color:var(--text3);flex-shrink:0}
+.syslog-line .tag{font-weight:600;width:50px;flex-shrink:0}
+.syslog-line .msg{color:var(--text2);flex:1}
+.tag-stt{color:#60a5fa}.tag-llm{color:var(--cyan)}.tag-action{color:var(--green)}.tag-esp32{color:var(--amber)}.tag-system{color:var(--text)}
+@media(max-width:900px){.dash-grid{grid-template-columns:1fr}}
+</style>
+
+<script src="app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  renderTopbar('DASHBOARD', '◆', '<button class="topbar-btn topbar-btn-primary" onclick="location.href=\'/terminal\'">▸ Terminal</button>');
+
+  // Neural bars
+  const providers = [
+    { name:'Groq/Llama', ms:120, color:'var(--green)', best:true },
+    { name:'Gemini', ms:210, color:'var(--cyan)' },
+    { name:'DeepSeek', ms:280, color:'var(--purple)' },
+    { name:'GPT-4o', ms:380, color:'var(--amber)' },
+    { name:'Claude', ms:420, color:'var(--text2)' },
+  ];
+  const maxMs = 500;
+  document.getElementById('neuralBars').innerHTML = providers.map(p => `
+    <div class="neural-row">
+      <span class="neural-name">${p.name}</span>
+      <div class="neural-bar-wrap"><div class="neural-bar" style="width:${(p.ms/maxMs)*100}%;background:${p.color}"></div></div>
+      <span class="neural-ms">${p.ms}ms</span>
+      ${p.best ? '<span class="neural-badge" style="background:rgba(16,185,129,0.12);color:var(--green);border:1px solid rgba(16,185,129,0.2)">FASTEST</span>' : ''}
+    </div>
+  `).join('');
+
+  // Recent activity
+  const activities = [
+    { ts:'23:02:57', icon:'🛡', msg:'nmap scan completed — 23 hosts, 47 open ports' },
+    { ts:'23:01:12', icon:'🔓', msg:'breach_check — found in 3 breaches' },
+    { ts:'22:58:40', icon:'🌐', msg:'OSINT lookup — 5 social profiles discovered' },
+    { ts:'22:55:10', icon:'⚠', msg:'deauth detected on ESP32-2 — logged' },
+    { ts:'22:50:03', icon:'📊', msg:'workflow_full_recon completed for target.com' },
+    { ts:'22:45:22', icon:'🔍', msg:'google_dorking — 12 results for admin panels' },
+    { ts:'22:40:15', icon:'💀', msg:'sqli_exploit — 3 injectable parameters found' },
+    { ts:'22:35:44', icon:'📡', msg:'ESP32-1 firmware update complete' },
+  ];
+  document.getElementById('recentActivity').innerHTML = activities.map(a => `
+    <div class="activity-row">
+      <span class="activity-ts">[${a.ts}]</span>
+      <span class="activity-icon">${a.icon}</span>
+      <span class="activity-msg">${a.msg}</span>
+    </div>
+  `).join('');
+
+  // System log live
+  const logLines = [
+    { ts:'23:02:57', tag:'STT', cls:'tag-stt', msg:'transcription complete — "scan the network"' },
+    { ts:'23:02:57', tag:'LLM', cls:'tag-llm', msg:'intent: network_scan | entity: 192.168.1.0/24' },
+    { ts:'23:02:58', tag:'ACTION', cls:'tag-action', msg:'nmap -sV 192.168.1.0/24 — started' },
+    { ts:'23:03:14', tag:'ACTION', cls:'tag-action', msg:'nmap complete — 23 hosts up, 47 ports' },
+    { ts:'23:03:15', tag:'ESP32', cls:'tag-esp32', msg:'relay: lights ON, fan OFF, AC OFF' },
+    { ts:'23:03:15', tag:'SYSTEM', cls:'tag-system', msg:'memory ingested: 3 chunks (importance: 7)' },
+  ];
+  const logEl = document.getElementById('syslogLive');
+  let idx = 0;
+  function addLog() {
+    const l = logLines[idx % logLines.length];
+    const now = new Date().toLocaleTimeString('en-IN', { hour12:false });
+    const div = document.createElement('div');
+    div.className = 'syslog-line';
+    div.innerHTML = `<span class="ts">[${now}]</span><span class="tag ${l.cls}">${l.tag}</span><span class="msg">${l.msg}</span>`;
+    logEl.appendChild(div);
+    if (logEl.children.length > 30) logEl.removeChild(logEl.firstChild);
+    logEl.scrollTop = logEl.scrollHeight;
+    idx++;
+  }
+  for (let i = 0; i < 6; i++) addLog();
+  setInterval(addLog, 4000);
+
+  // Uptime
+  const bootTime = Date.now() - (12 * 86400000 + 4 * 3600000);
+  function updUp() {
+    const d = Date.now() - bootTime;
+    const dd = Math.floor(d / 86400000);
+    const hh = Math.floor((d % 86400000) / 3600000);
+    const mm = Math.floor((d % 3600000) / 60000);
+    document.getElementById('dashUptime').textContent = `${dd}d ${String(hh).padStart(2,'0')}h ${String(mm).padStart(2,'0')}m`;
+  }
+  updUp(); setInterval(updUp, 60000);
+});
+
+function quickAction(type) {
+  const actions = { scan:'Quick network scan', breach:'Breach check', osint:'OSINT lookup', report:'Generate report', recon:'Full recon workflow', pentest:'Web pentest workflow' };
+  alert(`SIVRAJ → ${actions[type] || type}\n\nThis would trigger the ${type} tool via the API.\nConnect to localhost:3000/api for live execution.`);
+}
+function setTarget() {
+  const t = prompt('Enter target domain/IP:');
+  if (t) { document.getElementById('activeTarget').textContent = t; lsSet('activeTarget', t); }
+}
+</script>
+</body>
+</html>

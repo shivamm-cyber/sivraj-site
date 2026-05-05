@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SIVRAJ — Tools Arsenal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+<div class="scanline"></div>
+<nav class="sidebar" id="appSidebar"></nav>
+<div class="main">
+  <div class="topbar" id="appTopbar"></div>
+  <div class="page">
+    <!-- Category Filter -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem" id="catFilters"></div>
+    <!-- Search -->
+    <div style="margin-bottom:1rem"><input class="input" id="toolSearch" placeholder="Search 54 tools..." style="max-width:400px"/></div>
+    <!-- Tool Grid -->
+    <div class="tool-grid" id="toolGrid"></div>
+    <!-- Tool Detail Modal -->
+    <div id="toolModal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center">
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;width:min(600px,92vw);max-height:80vh;overflow-y:auto;padding:0">
+        <div style="padding:1.2rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <span style="font-family:var(--mono);font-weight:700;color:var(--cyan)" id="modalName"></span>
+          <button onclick="closeModal()" style="color:var(--text3);font-size:1.2rem">✕</button>
+        </div>
+        <div style="padding:1.2rem" id="modalBody"></div>
+        <div style="padding:.8rem 1.2rem;border-top:1px solid var(--border);display:flex;gap:8px">
+          <button class="btn btn-cyan" id="modalRun">▸ Run Tool</button>
+          <button class="btn" onclick="closeModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+<script>
+const TOOLS = [
+  // Phase 0: Core
+  { name:'osint_lookup', cat:'OSINT', desc:'Phone/email/username/domain/IP investigation', usage:23 },
+  { name:'whois_lookup', cat:'OSINT', desc:'Domain WHOIS registration data', usage:17 },
+  { name:'dns_lookup', cat:'OSINT', desc:'DNS records — A, AAAA, MX, TXT, CNAME, NS', usage:31 },
+  { name:'reverse_ip', cat:'OSINT', desc:'Find all domains on an IP', usage:8 },
+  { name:'subdomain_enum', cat:'OSINT', desc:'Subdomain discovery via multiple sources', usage:15 },
+  { name:'tech_stack_detect', cat:'OSINT', desc:'Identify frameworks, CMS, servers', usage:22 },
+  { name:'metadata_extract', cat:'OSINT', desc:'Extract EXIF/metadata from files', usage:5 },
+  { name:'shodan_search', cat:'OSINT', desc:'IoT/server search engine', usage:12 },
+  { name:'network_scan', cat:'Network', desc:'Nmap host discovery + port scanning', usage:45 },
+  { name:'port_scanner', cat:'Network', desc:'Fast TCP port scanning', usage:38 },
+  { name:'arp_scan', cat:'Network', desc:'Local network device discovery', usage:10 },
+  { name:'traceroute', cat:'Network', desc:'Network path tracing', usage:6 },
+  { name:'wifi_scanner', cat:'Network', desc:'Deauth detection, rogue APs', usage:9 },
+  { name:'packet_capture', cat:'Network', desc:'Network packet analysis', usage:4 },
+  { name:'firewall_audit', cat:'Network', desc:'Firewall rules and open ports', usage:3 },
+  { name:'analyze_url', cat:'Web', desc:'VirusTotal URL scanning', usage:28 },
+  { name:'ssl_check', cat:'Web', desc:'SSL/TLS certificate analysis', usage:19 },
+  { name:'header_analysis', cat:'Web', desc:'HTTP security headers audit', usage:24 },
+  { name:'vulnerability_scan', cat:'Web', desc:'CVE lookup and assessment', usage:14 },
+  { name:'email_spoof_check', cat:'Web', desc:'SPF/DKIM/DMARC verification', usage:11 },
+  { name:'hash_tools', cat:'Crypto', desc:'Hash generation and verification', usage:16 },
+  { name:'password_audit', cat:'Crypto', desc:'Password strength analysis', usage:13 },
+  { name:'analyze_logs', cat:'Forensics', desc:'MITRE ATT&CK mapped log analysis', usage:7 },
+  { name:'malware_scan', cat:'Forensics', desc:'File/URL malware detection', usage:8 },
+  { name:'social_engineer_detect', cat:'OSINT', desc:'Scam/phishing message analysis', usage:6 },
+  { name:'breach_check', cat:'OSINT', desc:'Email/password breach lookup', usage:34 },
+  { name:'generate_report', cat:'Reports', desc:'Professional pentest report generation', usage:9 },
+  // Phase 1: Deep Recon
+  { name:'google_dorking', cat:'Recon', desc:'60+ Google dork queries across 8 categories', usage:18 },
+  { name:'github_recon', cat:'Recon', desc:'GitHub leaked secrets/API keys scan', usage:7 },
+  { name:'web_archive', cat:'Recon', desc:'Wayback Machine historical URLs', usage:5 },
+  { name:'certificate_search', cat:'Recon', desc:'Certificate Transparency subdomain enum', usage:12 },
+  { name:'email_osint_deep', cat:'Recon', desc:'Deep email OSINT with social linking', usage:9 },
+  { name:'social_osint', cat:'Recon', desc:'Cross-platform username search (16 sites)', usage:11 },
+  { name:'cloud_secrets', cat:'Recon', desc:'Scan for 16 secret patterns in code', usage:4 },
+  { name:'wayback_diff', cat:'Recon', desc:'Compare old vs new archive snapshots', usage:3 },
+  // Phase 2: Exploit
+  { name:'sqli_exploit', cat:'Exploit', desc:'200+ SQLi payloads — union/blind/error/WAF bypass', usage:15 },
+  { name:'xss_framework', cat:'Exploit', desc:'70+ XSS payloads — context-aware', usage:12 },
+  { name:'directory_fuzzer', cat:'Exploit', desc:'HTTP directory brute-forcing', usage:20 },
+  { name:'parameter_finder', cat:'Exploit', desc:'Hidden parameter discovery', usage:8 },
+  { name:'api_security', cat:'Exploit', desc:'JWT/CORS/rate limit testing', usage:6 },
+  { name:'graphql_security', cat:'Exploit', desc:'GraphQL introspection & depth attacks', usage:3 },
+  { name:'lfi_rfi_exploit', cat:'Exploit', desc:'LFI/RFI payloads + PHP wrappers', usage:5 },
+  // Phase 3: Escalation
+  { name:'privesc_assistant', cat:'Escalation', desc:'WinPEAS/LinPEAS parser — SUID/sudo/cron', usage:4 },
+  { name:'ad_assessment', cat:'Escalation', desc:'Active Directory attack paths', usage:2 },
+  { name:'password_attack', cat:'Escalation', desc:'Hash ID + hashcat mode + crack strategy', usage:7 },
+  { name:'buffer_overflow', cat:'Escalation', desc:'Cyclic patterns, offset calc, shellcode', usage:1 },
+  { name:'rev_engineer', cat:'Escalation', desc:'Binary analysis + malware pattern detection', usage:2 },
+  // Phase 4: Cloud
+  { name:'aws_audit', cat:'Cloud', desc:'AWS S3/IAM/EC2/CloudTrail audit', usage:3 },
+  { name:'docker_audit', cat:'Cloud', desc:'Docker container security audit', usage:4 },
+  { name:'k8s_audit', cat:'Cloud', desc:'Kubernetes RBAC/API/pod security', usage:1 },
+  { name:'memory_analyze', cat:'Cloud', desc:'Volatility memory forensics guide', usage:2 },
+  // Phase 5: Workflows
+  { name:'workflow_full_recon', cat:'Workflow', desc:'Auto-chain 8 recon tools', usage:6 },
+  { name:'workflow_web_pentest', cat:'Workflow', desc:'Auto-chain 6 web pentest tools', usage:4 },
+  { name:'attack_surface_map', cat:'Workflow', desc:'Visual attack surface mapping', usage:5 },
+];
+
+const CATS = [...new Set(TOOLS.map(t => t.cat))];
+const CAT_COLORS = { OSINT:'var(--cyan)', Network:'var(--green)', Web:'var(--amber)', Crypto:'var(--purple)', Forensics:'var(--red)', Reports:'var(--text2)', Recon:'#60a5fa', Exploit:'var(--red)', Escalation:'var(--orange)', Cloud:'#a78bfa', Workflow:'var(--cyan)' };
+let activeCat = 'all';
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderTopbar('TOOLS ARSENAL', '🔧', `<span style="font-family:var(--mono);font-size:.7rem;color:var(--text3)">${TOOLS.length} tools loaded</span>`);
+  // Categories
+  const cf = document.getElementById('catFilters');
+  cf.innerHTML = `<button class="btn btn-cyan cat-btn active" data-cat="all">ALL (${TOOLS.length})</button>` +
+    CATS.map(c => `<button class="btn cat-btn" data-cat="${c}" style="--cat-c:${CAT_COLORS[c]||'var(--text2)'}">${c.toUpperCase()} (${TOOLS.filter(t=>t.cat===c).length})</button>`).join('');
+  cf.addEventListener('click', e => {
+    const btn = e.target.closest('.cat-btn');
+    if (!btn) return;
+    activeCat = btn.dataset.cat;
+    cf.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active','btn-cyan'));
+    btn.classList.add('active','btn-cyan');
+    renderTools();
+  });
+  document.getElementById('toolSearch').addEventListener('input', renderTools);
+  renderTools();
+});
+
+function renderTools() {
+  const search = document.getElementById('toolSearch').value.toLowerCase();
+  const filtered = TOOLS.filter(t => (activeCat === 'all' || t.cat === activeCat) && (t.name.includes(search) || t.desc.toLowerCase().includes(search)));
+  document.getElementById('toolGrid').innerHTML = filtered.map((t,i) => `
+    <div class="tool-card" onclick="openTool(${TOOLS.indexOf(t)})">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="tool-card-name">${t.name}</div>
+        <span class="tbl-badge badge-info" style="font-size:.55rem">${t.cat}</span>
+      </div>
+      <div class="tool-card-desc">${t.desc}</div>
+      <div class="tool-card-meta">
+        <span class="tool-card-usage">Used ${t.usage}x</span>
+      </div>
+    </div>
+  `).join('') || '<div style="color:var(--text3);font-family:var(--mono);font-size:.8rem;padding:2rem;text-align:center">No tools match your search</div>';
+}
+
+function openTool(idx) {
+  const t = TOOLS[idx];
+  document.getElementById('modalName').textContent = t.name;
+  document.getElementById('modalBody').innerHTML = `
+    <div style="font-size:.8rem;color:var(--text2);margin-bottom:1rem">${t.desc}</div>
+    <div style="font-family:var(--mono);font-size:.7rem;color:var(--text3);margin-bottom:.5rem">CATEGORY: <span style="color:${CAT_COLORS[t.cat]}">${t.cat}</span></div>
+    <div style="font-family:var(--mono);font-size:.7rem;color:var(--text3);margin-bottom:1rem">USAGE COUNT: ${t.usage}x</div>
+    <div style="font-family:var(--mono);font-size:.7rem;color:var(--text3);margin-bottom:.5rem">INPUT:</div>
+    <input class="input" placeholder="Enter target..." id="modalInput" style="margin-bottom:.5rem"/>
+  `;
+  document.getElementById('modalRun').onclick = () => {
+    const input = document.getElementById('modalInput').value;
+    alert('Running ' + t.name + ' with input: ' + (input || '(none)') + '\n\nConnect to localhost:3000/api for live execution.');
+  };
+  document.getElementById('toolModal').style.display = 'flex';
+}
+function closeModal() { document.getElementById('toolModal').style.display = 'none'; }
+</script>
+</body>
+</html>

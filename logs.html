@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SIVRAJ — System Logs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="app.css"/>
+<style>
+.log-viewer{background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;height:calc(100vh - 160px);display:flex;flex-direction:column}
+.log-toolbar{display:flex;gap:8px;padding:.6rem 1rem;border-bottom:1px solid var(--border);background:var(--bg2);flex-wrap:wrap;align-items:center}
+.log-body{flex:1;overflow-y:auto;padding:.5rem 1rem;font-family:var(--mono);font-size:.75rem;line-height:1.7}
+.log-entry{display:flex;gap:8px;padding:1px 0}
+.log-entry:hover{background:var(--surface)}
+.log-ts{color:var(--text3);flex-shrink:0;width:80px}
+.log-level{flex-shrink:0;width:50px;font-weight:700}
+.log-src{flex-shrink:0;width:70px;color:var(--text3)}
+.log-msg{color:var(--text2);flex:1}
+.lvl-info{color:var(--cyan)}.lvl-warn{color:var(--amber)}.lvl-error{color:var(--red)}.lvl-debug{color:var(--text3)}.lvl-success{color:var(--green)}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+<nav class="sidebar" id="appSidebar"></nav>
+<div class="main">
+  <div class="topbar" id="appTopbar"></div>
+  <div class="page">
+    <div class="log-viewer">
+      <div class="log-toolbar">
+        <input class="input" id="logSearch" placeholder="Search logs..." style="width:250px;font-size:.75rem"/>
+        <select class="select" id="logLevel" style="font-size:.72rem"><option value="all">All Levels</option><option value="INFO">INFO</option><option value="WARN">WARN</option><option value="ERROR">ERROR</option><option value="DEBUG">DEBUG</option></select>
+        <select class="select" id="logSrc" style="font-size:.72rem"><option value="all">All Sources</option><option value="LLM">LLM</option><option value="TOOL">TOOL</option><option value="ESP32">ESP32</option><option value="SYSTEM">SYSTEM</option><option value="AUTH">AUTH</option></select>
+        <button class="btn" onclick="clearLogs()" style="font-size:.65rem">Clear</button>
+        <button class="btn btn-cyan" onclick="exportLogs()" style="font-size:.65rem">📥 Export</button>
+        <label style="font-size:.65rem;color:var(--text3);display:flex;align-items:center;gap:4px;margin-left:auto"><input type="checkbox" id="autoScroll" checked/> Auto-scroll</label>
+      </div>
+      <div class="log-body" id="logBody"></div>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+<script>
+const LOG_DATA = [
+  { ts:'23:02:57', level:'INFO', src:'STT', msg:'Transcription complete — "scan the local network"' },
+  { ts:'23:02:57', level:'INFO', src:'LLM', msg:'Intent classified: network_scan | provider: Groq/Llama (118ms)' },
+  { ts:'23:02:58', level:'INFO', src:'TOOL', msg:'Executing: network_scan { target: "192.168.1.0/24", scan_type: "quick" }' },
+  { ts:'23:03:14', level:'SUCCESS', src:'TOOL', msg:'network_scan complete — 23 hosts, 47 open ports' },
+  { ts:'23:03:15', level:'INFO', src:'ESP32', msg:'Relay state: lights=ON fan=OFF ac=OFF monitor=ON' },
+  { ts:'23:03:15', level:'DEBUG', src:'SYSTEM', msg:'Memory ingested: 3 chunks (importance: 7, session: abc123)' },
+  { ts:'23:03:16', level:'INFO', src:'LLM', msg:'Response generated — 1,247 tokens (Groq/Llama, 340ms total)' },
+  { ts:'23:05:00', level:'WARN', src:'ESP32', msg:'ESP32-3 heartbeat timeout — marking offline' },
+  { ts:'23:05:01', level:'INFO', src:'SYSTEM', msg:'Alert sent: ESP32-3 offline notification' },
+  { ts:'23:06:12', level:'INFO', src:'AUTH', msg:'Session refreshed — JWT exp: 2026-05-06T23:06:12Z' },
+  { ts:'23:07:00', level:'ERROR', src:'TOOL', msg:'breach_check failed — HIBP rate limit (retry in 60s)' },
+  { ts:'23:07:01', level:'INFO', src:'SYSTEM', msg:'Fallback: breach_check queued for retry' },
+  { ts:'23:08:44', level:'INFO', src:'TOOL', msg:'breach_check retry succeeded — 3 breaches found' },
+  { ts:'23:10:00', level:'DEBUG', src:'SYSTEM', msg:'Scheduler tick — no pending tasks' },
+  { ts:'23:12:30', level:'WARN', src:'ESP32', msg:'Deauth frame detected on channel 6 — src: DE:AD:BE:EF:00:01' },
+  { ts:'23:12:31', level:'INFO', src:'SYSTEM', msg:'Deauth event logged to findings database (#048)' },
+];
+let logs = [...LOG_DATA];
+function render() {
+  const search = document.getElementById('logSearch').value.toLowerCase();
+  const level = document.getElementById('logLevel').value;
+  const src = document.getElementById('logSrc').value;
+  const filtered = logs.filter(l => (level==='all'||l.level===level) && (src==='all'||l.src===src) && (l.msg.toLowerCase().includes(search)||l.src.toLowerCase().includes(search)));
+  const lvlCls = l => l==='ERROR'?'lvl-error':l==='WARN'?'lvl-warn':l==='SUCCESS'?'lvl-success':l==='DEBUG'?'lvl-debug':'lvl-info';
+  document.getElementById('logBody').innerHTML = filtered.map(l => `<div class="log-entry"><span class="log-ts">[${l.ts}]</span><span class="log-level ${lvlCls(l.level)}">${l.level}</span><span class="log-src">${l.src}</span><span class="log-msg">${l.msg}</span></div>`).join('');
+  if (document.getElementById('autoScroll').checked) { const b = document.getElementById('logBody'); b.scrollTop = b.scrollHeight; }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  renderTopbar('SYSTEM LOGS', '📜', '');
+  render();
+  document.getElementById('logSearch').addEventListener('input', render);
+  document.getElementById('logLevel').addEventListener('change', render);
+  document.getElementById('logSrc').addEventListener('change', render);
+  // Simulated live feed
+  let idx = 0;
+  setInterval(() => {
+    const l = LOG_DATA[idx % LOG_DATA.length];
+    const now = new Date().toLocaleTimeString('en-IN',{hour12:false});
+    logs.push({...l, ts:now});
+    if (logs.length > 200) logs.shift();
+    render(); idx++;
+  }, 5000);
+});
+function clearLogs() { logs = []; render(); }
+function exportLogs() { navigator.clipboard.writeText(logs.map(l=>`[${l.ts}] ${l.level} ${l.src} ${l.msg}`).join('\n')); alert('Logs copied!'); }
+</script>
+</body>
+</html>
