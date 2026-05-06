@@ -27,6 +27,13 @@
 <div class="main">
   <div class="topbar" id="appTopbar"></div>
   <div class="page">
+    <!-- SIVRAJ Connection -->
+    <div class="settings-group">
+      <div class="settings-group-header">🔗 SIVRAJ Connection</div>
+      <div class="settings-row"><div class="settings-k">API URL<small>Where the SIVRAJ agent is running</small></div><div class="settings-v"><input class="input settings-input" placeholder="http://localhost:3000" id="apiUrl"/><button class="btn btn-cyan" onclick="testConnection()" style="font-size:.6rem">Test</button></div></div>
+      <div class="settings-row"><div class="settings-k">Cloudflare Tunnel<small>Public URL for remote access via cloudflared</small></div><div class="settings-v"><input class="input settings-input" placeholder="https://sivraj-tunnel.your.domain" id="tunnelUrl"/></div></div>
+      <div class="settings-row"><div class="settings-k">Connection Status</div><div class="settings-v"><span id="connStatus" style="font-family:var(--mono);font-size:.75rem;color:var(--text3)">—</span></div></div>
+    </div>
     <!-- LLM Providers -->
     <div class="settings-group">
       <div class="settings-group-header">🤖 LLM Providers</div>
@@ -73,6 +80,7 @@
   </div>
 </div>
 <script src="app.js"></script>
+<script src="api.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   renderTopbar('SETTINGS', '⚙', '');
@@ -82,8 +90,28 @@ document.addEventListener('DOMContentLoaded', () => {
   if (keys.openai) document.getElementById('openaiKey').value = keys.openai;
   if (keys.google) document.getElementById('googleKey').value = keys.google;
   if (keys.claude) document.getElementById('claudeKey').value = keys.claude;
+  // Load API URL
+  const savedUrl = localStorage.getItem('sivraj_api_url');
+  if (savedUrl) document.getElementById('apiUrl').value = savedUrl;
+  const tunnelUrl = localStorage.getItem('sivraj_tunnel_url');
+  if (tunnelUrl) document.getElementById('tunnelUrl').value = tunnelUrl;
+  // Auto-test connection
+  testConnection();
 });
-function testKey(provider) { alert(`Testing ${provider} API key... ✅ Valid!`); }
+async function testConnection() {
+  const statusEl = document.getElementById('connStatus');
+  statusEl.textContent = '⏳ Testing...';
+  statusEl.style.color = 'var(--amber)';
+  const status = await api.getStatus();
+  if (status) {
+    statusEl.textContent = `🟢 Connected — v${status.version} · ${status.toolsLoaded} tools · uptime ${formatUptime(status.uptime)}`;
+    statusEl.style.color = 'var(--green)';
+  } else {
+    statusEl.textContent = '🔴 Offline — agent not running or unreachable';
+    statusEl.style.color = 'var(--red)';
+  }
+}
+function testKey(provider) { alert(`Testing ${provider} API key... Connect to SIVRAJ agent to validate.`); }
 function saveSettings() {
   lsSet('apiKeys', {
     groq: document.getElementById('groqKey').value,
@@ -91,7 +119,11 @@ function saveSettings() {
     google: document.getElementById('googleKey').value,
     claude: document.getElementById('claudeKey').value,
   });
-  alert('Settings saved!');
+  const apiUrl = document.getElementById('apiUrl').value.trim();
+  const tunnelUrl = document.getElementById('tunnelUrl').value.trim();
+  if (apiUrl) localStorage.setItem('sivraj_api_url', apiUrl);
+  if (tunnelUrl) localStorage.setItem('sivraj_tunnel_url', tunnelUrl);
+  alert('Settings saved! Reload pages for new API URL to take effect.');
 }
 function resetSettings() { if(confirm('Reset all settings?')) { localStorage.clear(); location.reload(); } }
 </script>

@@ -33,34 +33,40 @@
           <thead><tr><th>#</th><th>Title</th><th>Target</th><th>Severity</th><th>CVSS</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody id="findingsTable"></tbody>
         </table>
+        <div id="findingsEmpty" style="color:var(--text3);font-family:var(--mono);font-size:.8rem;padding:2rem;text-align:center">No findings yet — run a scan to populate</div>
       </div>
       <div class="panel-footer">
         <button class="btn" onclick="exportFindings()">📥 Export CSV</button>
-        <button class="btn" onclick="summaryFindings()">📊 Summary</button>
       </div>
     </div>
   </div>
 </div>
 <script src="app.js"></script>
+<script src="api.js"></script>
 <script>
-let findings = lsGet('findings', [
-  { id:47, title:'SQL Injection in /login', target:'acme.com', severity:'Critical', cvss:9.8, status:'Open' },
-  { id:46, title:'Reflected XSS in search', target:'acme.com', severity:'High', cvss:6.1, status:'Open' },
-  { id:45, title:'Open S3 bucket (public read)', target:'test.io', severity:'High', cvss:7.5, status:'Fixed' },
-  { id:44, title:'Weak SSH password policy', target:'lab.local', severity:'Medium', cvss:4.8, status:'Open' },
-  { id:43, title:'Missing HSTS header', target:'acme.com', severity:'Low', cvss:3.2, status:'Open' },
-  { id:42, title:'Directory listing enabled', target:'test.io', severity:'Medium', cvss:5.3, status:'Fixed' },
-  { id:41, title:'Default admin credentials', target:'lab.local', severity:'Critical', cvss:9.1, status:'Open' },
-  { id:40, title:'CORS misconfiguration', target:'acme.com', severity:'Medium', cvss:5.0, status:'Accepted' },
-]);
+// Findings stored in localStorage — populated by real scan results
+let findings = lsGet('findings', []);
+
 function render() {
   const sevF = document.getElementById('fSevFilter').value;
   const stF = document.getElementById('fStatusFilter').value;
   const filtered = findings.filter(f => (sevF === 'all' || f.severity === sevF) && (stF === 'all' || f.status === stF));
+
   document.getElementById('fTotal').textContent = findings.length;
   document.getElementById('fCrit').textContent = findings.filter(f => f.severity === 'Critical').length;
   document.getElementById('fHigh').textContent = findings.filter(f => f.severity === 'High').length;
   document.getElementById('fOpen').textContent = findings.filter(f => f.status === 'Open').length;
+
+  if (filtered.length === 0) {
+    document.getElementById('findingsTable').innerHTML = '';
+    document.getElementById('findingsEmpty').style.display = 'block';
+    document.getElementById('findingsEmpty').textContent = findings.length === 0
+      ? 'No findings yet — run a scan to populate'
+      : 'No findings match your filter';
+    return;
+  }
+
+  document.getElementById('findingsEmpty').style.display = 'none';
   const sevBadge = s => s === 'Critical' ? 'badge-crit' : s === 'High' ? 'badge-high' : s === 'Medium' ? 'badge-med' : 'badge-low';
   const stBadge = s => s === 'Open' ? 'badge-high' : s === 'Fixed' ? 'badge-low' : 'badge-info';
   document.getElementById('findingsTable').innerHTML = filtered.map(f => `
@@ -78,25 +84,33 @@ function render() {
     </tr>
   `).join('');
 }
+
 document.addEventListener('DOMContentLoaded', () => {
   renderTopbar('FINDINGS', '🚩', '');
   render();
   document.getElementById('fSevFilter').addEventListener('change', render);
   document.getElementById('fStatusFilter').addEventListener('change', render);
 });
+
 function addFinding() {
   const title = prompt('Finding title:'); if (!title) return;
   const target = prompt('Target:') || '—';
   const severity = prompt('Severity (Critical/High/Medium/Low):', 'Medium') || 'Medium';
   const cvss = parseFloat(prompt('CVSS score:', '5.0')) || 5.0;
-  const id = Math.max(0, ...findings.map(f=>f.id)) + 1;
-  findings.unshift({ id, title, target, severity, cvss, status:'Open' });
-  lsSet('findings', findings); render();
+  const id = findings.length > 0 ? Math.max(...findings.map(f => f.id)) + 1 : 1;
+  findings.unshift({ id, title, target, severity, cvss, status: 'Open' });
+  lsSet('findings', findings);
+  render();
 }
-function toggleStatus(id) { const f = findings.find(x=>x.id===id); if(f) f.status = f.status==='Open'?'Fixed':'Open'; lsSet('findings',findings); render(); }
-function delFinding(id) { if(confirm('Delete finding #'+id+'?')) { findings = findings.filter(f=>f.id!==id); lsSet('findings',findings); render(); } }
-function exportFindings() { const csv = 'ID,Title,Target,Severity,CVSS,Status\n' + findings.map(f=>`${f.id},"${f.title}",${f.target},${f.severity},${f.cvss},${f.status}`).join('\n'); navigator.clipboard.writeText(csv); alert('CSV copied to clipboard!'); }
-function summaryFindings() { alert(`Summary:\nCritical: ${findings.filter(f=>f.severity==='Critical').length}\nHigh: ${findings.filter(f=>f.severity==='High').length}\nMedium: ${findings.filter(f=>f.severity==='Medium').length}\nLow: ${findings.filter(f=>f.severity==='Low').length}\nOpen: ${findings.filter(f=>f.status==='Open').length}\nFixed: ${findings.filter(f=>f.status==='Fixed').length}`); }
+
+function toggleStatus(id) { const f = findings.find(x => x.id === id); if (f) f.status = f.status === 'Open' ? 'Fixed' : 'Open'; lsSet('findings', findings); render(); }
+function delFinding(id) { if (confirm('Delete finding #' + id + '?')) { findings = findings.filter(f => f.id !== id); lsSet('findings', findings); render(); } }
+function exportFindings() {
+  if (findings.length === 0) { alert('No findings to export'); return; }
+  const csv = 'ID,Title,Target,Severity,CVSS,Status\n' + findings.map(f => `${f.id},"${f.title}",${f.target},${f.severity},${f.cvss},${f.status}`).join('\n');
+  navigator.clipboard.writeText(csv);
+  alert('CSV copied to clipboard!');
+}
 </script>
 </body>
 </html>

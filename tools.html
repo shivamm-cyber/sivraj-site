@@ -133,7 +133,7 @@ function renderTools() {
       </div>
       <div class="tool-card-desc">${t.desc}</div>
       <div class="tool-card-meta">
-        <span class="tool-card-usage">Used ${t.usage}x</span>
+        <span class="tool-card-usage">Used ${(lsGet('tool_usage',{})[t.name] || 0)}x</span>
       </div>
     </div>
   `).join('') || '<div style="color:var(--text3);font-family:var(--mono);font-size:.8rem;padding:2rem;text-align:center">No tools match your search</div>';

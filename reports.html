@@ -14,26 +14,56 @@
   <div class="topbar" id="appTopbar"></div>
   <div class="page">
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">Total Reports</div><div class="stat-value cyan">3</div></div>
-      <div class="stat-card"><div class="stat-label">This Month</div><div class="stat-value green">2</div></div>
-      <div class="stat-card"><div class="stat-label">Avg Findings</div><div class="stat-value">7.7</div></div>
+      <div class="stat-card"><div class="stat-label">Total Reports</div><div class="stat-value cyan" id="rTotal">0</div></div>
+      <div class="stat-card"><div class="stat-label">This Month</div><div class="stat-value green" id="rMonth">0</div></div>
+      <div class="stat-card"><div class="stat-label">Avg Findings</div><div class="stat-value" id="rAvg">—</div></div>
     </div>
     <div class="panel">
       <div class="panel-header"><div class="panel-title"><span class="panel-title-dot"></span>REPORT ARCHIVE</div></div>
       <div class="panel-body" style="overflow-x:auto">
         <table class="tbl">
-          <thead><tr><th>Date</th><th>Target</th><th>Type</th><th>Findings</th><th>Critical</th><th>Format</th><th>Actions</th></tr></thead>
-          <tbody>
-            <tr><td>2026-05-04</td><td style="color:var(--cyan)">acme.com</td><td>Full Pentest</td><td>12</td><td><span class="tbl-badge badge-crit">2</span></td><td>PDF, HTML</td><td><button class="btn btn-cyan" style="font-size:.6rem">View</button> <button class="btn" style="font-size:.6rem">📥 PDF</button></td></tr>
-            <tr><td>2026-04-28</td><td style="color:var(--cyan)">test.io</td><td>Web Only</td><td>7</td><td><span class="tbl-badge badge-high">1</span></td><td>PDF, MD</td><td><button class="btn btn-cyan" style="font-size:.6rem">View</button> <button class="btn" style="font-size:.6rem">📥 PDF</button></td></tr>
-            <tr><td>2026-04-15</td><td style="color:var(--cyan)">lab.local</td><td>Network</td><td>4</td><td>0</td><td>HTML</td><td><button class="btn btn-cyan" style="font-size:.6rem">View</button> <button class="btn" style="font-size:.6rem">📥 PDF</button></td></tr>
-          </tbody>
+          <thead><tr><th>Date</th><th>Target</th><th>Type</th><th>Findings</th><th>Critical</th><th>Actions</th></tr></thead>
+          <tbody id="reportTable"></tbody>
         </table>
+        <div id="reportEmpty" style="color:var(--text3);font-family:var(--mono);font-size:.8rem;padding:2rem;text-align:center">No reports generated yet — complete an operation to generate one</div>
       </div>
     </div>
   </div>
 </div>
 <script src="app.js"></script>
-<script>document.addEventListener('DOMContentLoaded',()=>{renderTopbar('REPORTS','📊','<button class="topbar-btn topbar-btn-primary" onclick="alert(\'Generate report — select target and scope\')">+ Generate New</button>')});</script>
+<script src="api.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  renderTopbar('REPORTS', '📊', '<button class="topbar-btn topbar-btn-primary" onclick="genReport()">+ Generate New</button>');
+  const reports = lsGet('reports', []);
+  document.getElementById('rTotal').textContent = reports.length;
+  const now = new Date();
+  document.getElementById('rMonth').textContent = reports.filter(r => {
+    const d = new Date(r.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+  if (reports.length > 0) {
+    document.getElementById('rAvg').textContent = (reports.reduce((s,r) => s + (r.findings||0), 0) / reports.length).toFixed(1);
+    document.getElementById('reportEmpty').style.display = 'none';
+    document.getElementById('reportTable').innerHTML = reports.map(r => `
+      <tr>
+        <td>${r.date}</td><td style="color:var(--cyan)">${r.target}</td><td>${r.type}</td>
+        <td>${r.findings}</td><td>${r.critical > 0 ? '<span class="tbl-badge badge-crit">' + r.critical + '</span>' : '0'}</td>
+        <td><button class="btn btn-cyan" style="font-size:.6rem">View</button></td>
+      </tr>
+    `).join('');
+  }
+});
+function genReport() {
+  const target = prompt('Target for report:');
+  if (!target) return;
+  const findings = lsGet('findings', []).filter(f => f.target === target);
+  const report = { date: new Date().toISOString().split('T')[0], target, type: 'Full Pentest', findings: findings.length, critical: findings.filter(f => f.severity === 'Critical').length };
+  const reports = lsGet('reports', []);
+  reports.unshift(report);
+  lsSet('reports', reports);
+  location.reload();
+}
+</script>
 </body>
 </html>

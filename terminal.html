@@ -31,50 +31,32 @@
   </div>
 </div>
 <script src="app.js"></script>
+<script src="api.js"></script>
 <script>
 const TERM_HISTORY = [];
 let histIdx = -1;
-const COMMANDS = {
+
+const LOCAL_COMMANDS = {
   help: () => [
     '  ╔══════════════════════════════════════════════════════╗',
     '  ║  SIVRAJ v4.0 — Command Reference                   ║',
     '  ╚══════════════════════════════════════════════════════╝',
     '  help              Show this help',
     '  clear             Clear terminal',
-    '  status            System status',
-    '  scan <target>     Quick nmap scan',
-    '  osint <target>    OSINT lookup',
-    '  breach <email>    Breach check',
-    '  dorking <domain>  Google dork queries',
+    '  status            Check agent connection',
     '  tools             List all tools',
-    '  sensors           ESP32 sensor data',
-    '  recon <domain>    Full recon workflow',
-    '  pentest <url>     Web pentest workflow',
     '  history           Command history',
     '',
-    '  All 54 tools available. Type tool_name for info.',
+    '  Any other command is sent to the SIVRAJ agent for',
+    '  real execution. Examples:',
+    '    scan 192.168.1.0/24    → runs network_scan',
+    '    osint example.com      → runs osint_lookup',
+    '    breach user@email.com  → runs breach_check',
+    '    dorking example.com    → runs google_dorking',
+    '',
+    '  ⚠  Agent must be running on localhost:3000',
   ],
-  status: () => [
-    '  ┌─ SYSTEM STATUS ─────────────────────┐',
-    '  │ Status:    ONLINE                    │',
-    '  │ Uptime:    12d 04h 22m               │',
-    '  │ Tools:     54 loaded                 │',
-    '  │ Provider:  Groq/Llama (120ms)        │',
-    '  │ Memory:    47,231 chunks             │',
-    '  │ ESP32-1:   🟢 Online (10.0.0.51)    │',
-    '  │ ESP32-2:   🟢 Online (10.0.0.52)    │',
-    '  │ ESP32-3:   🔴 Offline               │',
-    '  └──────────────────────────────────────┘',
-  ],
-  sensors: () => [
-    '  🌡 Temperature:  28.4°C',
-    '  💧 Humidity:     62%',
-    '  🔊 Sound:       42 dB',
-    '  👁 Motion:      No activity',
-    '  📡 ESP32-1:     scanning (ch 1-13)',
-    '  📡 ESP32-2:     monitoring deauth',
-  ],
-  tools: () => ['  54 tools loaded across 11 categories.', '  Visit /tools for the full searchable arsenal.', '  Categories: OSINT, Network, Web, Crypto, Forensics, Recon, Exploit, Escalation, Cloud, Workflow, Reports'],
+  tools: () => ['  68 tools loaded across 11 categories.', '  Visit /tools for the full searchable arsenal.'],
   history: () => TERM_HISTORY.length ? TERM_HISTORY.map((h,i) => `  ${i+1}. ${h}`) : ['  No commands yet.'],
 };
 
@@ -87,7 +69,7 @@ function addLine(text, cls = '') {
   body.scrollTop = body.scrollHeight;
 }
 
-function processCmd(raw) {
+async function processCmd(raw) {
   const cmd = raw.trim();
   if (!cmd) return;
   TERM_HISTORY.push(cmd);
@@ -98,53 +80,78 @@ function processCmd(raw) {
   const arg = parts.slice(1).join(' ');
 
   if (base === 'clear') { document.getElementById('termBody').innerHTML = ''; return; }
-  if (COMMANDS[base]) { COMMANDS[base]().forEach(l => addLine(l)); return; }
 
-  // Simulated tool execution
-  if (['scan','nmap'].includes(base)) {
-    addLine(`  Starting nmap scan on ${arg || '192.168.1.0/24'}...`, 'info');
-    setTimeout(() => { addLine('  Scan complete — 23 hosts, 47 open ports', 'info'); }, 1500);
+  // Local commands
+  if (LOCAL_COMMANDS[base]) { LOCAL_COMMANDS[base]().forEach(l => addLine(l)); return; }
+
+  // Status — check real connection
+  if (base === 'status') {
+    addLine('  Checking agent connection...', 'info');
+    const status = await api.getStatus();
+    if (status) {
+      addLine('  ┌─ SYSTEM STATUS ─────────────────────┐');
+      addLine(`  │ Status:    ONLINE                    │`);
+      addLine(`  │ Uptime:    ${formatUptime(status.uptime).padEnd(27)}│`);
+      addLine(`  │ Tools:     ${String(status.toolsLoaded).padEnd(27)}│`);
+      addLine(`  │ Providers: ${String(status.providers?.length || 0).padEnd(27)}│`);
+      if (status.fastestProvider) {
+        addLine(`  │ Fastest:   ${(status.fastestProvider + ' (' + status.fastestLatency + 'ms)').padEnd(27)}│`);
+      }
+      addLine('  └──────────────────────────────────────┘');
+    } else {
+      addLine('  ┌─ SYSTEM STATUS ─────────────────────┐');
+      addLine('  │ Status:    🔴 OFFLINE                │');
+      addLine('  │ Start:     cd sivraj && npm run dev   │');
+      addLine('  └──────────────────────────────────────┘');
+    }
     return;
   }
-  if (base === 'osint') {
-    addLine(`  Running OSINT lookup on: ${arg}`, 'info');
-    setTimeout(() => { addLine('  Found: 5 social profiles, 2 breaches, domain registered 2019', 'info'); }, 1200);
-    return;
+
+  // Map common commands to tool names
+  const toolMap = {
+    scan: 'network_scan', nmap: 'network_scan',
+    osint: 'osint_lookup',
+    breach: 'breach_check',
+    dorking: 'google_dorking',
+    recon: 'workflow_full_recon',
+    pentest: 'workflow_web_pentest',
+    whois: 'whois_lookup',
+    dns: 'dns_lookup',
+    ssl: 'ssl_check',
+    headers: 'header_analysis',
+    subdomain: 'subdomain_enum',
+    tech: 'tech_stack_detect',
+  };
+
+  const toolName = toolMap[base] || base;
+
+  // Send REAL command to agent
+  addLine(`  Executing: ${toolName} ${arg ? '→ ' + arg : ''}`, 'info');
+
+  const result = await api.runCommand(toolName, { target: arg || undefined });
+
+  if (result.error) {
+    if (result.error.includes('fetch')) {
+      addLine('  ❌ Agent offline — start with: cd sivraj && npm run dev', 'err');
+    } else {
+      addLine(`  ❌ Error: ${result.error}`, 'err');
+    }
+  } else if (result.result) {
+    // Display real output
+    const lines = result.result.split('\n');
+    lines.forEach(l => addLine('  ' + l));
+    addLine(`  ✅ ${toolName} complete`, 'cmd');
+  } else {
+    addLine(`  ✅ ${toolName} complete (no output)`, 'cmd');
   }
-  if (base === 'breach') {
-    addLine(`  Checking breaches for: ${arg}`, 'info');
-    setTimeout(() => { addLine('  ⚠ Found in 3 breaches: LinkedIn (2012), Adobe (2013), Collection #1', 'info'); }, 1000);
-    return;
-  }
-  if (base === 'dorking') {
-    addLine(`  Generating Google dorks for: ${arg}`, 'info');
-    setTimeout(() => { addLine('  Generated 60+ dork queries across 8 categories', 'info'); }, 800);
-    return;
-  }
-  if (base === 'recon') {
-    addLine(`  Starting full recon workflow on: ${arg}`, 'info');
-    const steps = ['cert_search','tech_stack','dns_lookup','ssl_check','headers','email_security','web_archive','google_dorking'];
-    steps.forEach((s,i) => setTimeout(() => addLine(`  [${i+1}/8] ${s} ✅`, 'info'), (i+1)*800));
-    setTimeout(() => addLine('  ✅ Full recon complete. 8 tools executed.', 'cmd'), steps.length*800+200);
-    return;
-  }
-  if (base === 'pentest') {
-    addLine(`  Starting web pentest workflow on: ${arg}`, 'info');
-    const steps = ['directory_fuzzer','parameter_finder','sqli_exploit','xss_framework','headers','ssl'];
-    steps.forEach((s,i) => setTimeout(() => addLine(`  [${i+1}/6] ${s} ✅`, 'info'), (i+1)*900));
-    setTimeout(() => addLine('  ✅ Web pentest complete. 6 tools executed.', 'cmd'), steps.length*900+200);
-    return;
-  }
-  addLine(`  Unknown command: ${base}. Type 'help' for available commands.`, 'err');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  renderTopbar('TERMINAL', '▸', '<button class="topbar-btn" onclick="window.open(\'/terminal\',\'_blank\')">⛶ Fullscreen</button>');
-  // Welcome
+  renderTopbar('TERMINAL', '▸', '');
   addLine('╔══════════════════════════════════════════════════════╗');
   addLine('║  SIVRAJ v4.0 — Autonomous Intelligence Terminal     ║');
-  addLine('║  Type \'help\' for available commands                  ║');
-  addLine('║  Connected to: ESP32-1, ESP32-2                     ║');
+  addLine("║  Type 'help' for available commands                  ║");
+  addLine('║  All commands execute LIVE via the SIVRAJ agent      ║');
   addLine('╚══════════════════════════════════════════════════════╝');
   addLine('');
 
@@ -156,8 +163,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   input.focus();
 });
+
 function clearTerm() { document.getElementById('termBody').innerHTML = ''; }
-function exportTerm() { const lines = [...document.querySelectorAll('.term-line')].map(l=>l.textContent).join('\n'); navigator.clipboard.writeText(lines); alert('Terminal output copied!'); }
+function exportTerm() { const lines = [...document.querySelectorAll('.term-line')].map(l => l.textContent).join('\n'); navigator.clipboard.writeText(lines); alert('Terminal output copied!'); }
 </script>
 </body>
 </html>

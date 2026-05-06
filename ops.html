@@ -13,33 +13,28 @@
 <div class="main">
   <div class="topbar" id="appTopbar"></div>
   <div class="page">
-    <!-- Current Op -->
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-label">Target</div><div class="stat-value cyan" id="opTarget">—</div></div>
       <div class="stat-card"><div class="stat-label">Progress</div><div class="stat-value amber" id="opProgress">0%</div><div class="progress" style="margin-top:6px"><div class="progress-bar" id="opBar" style="width:0%"></div></div></div>
-      <div class="stat-card"><div class="stat-label">Elapsed</div><div class="stat-value" id="opTime">0h 0m</div></div>
+      <div class="stat-card"><div class="stat-label">Elapsed</div><div class="stat-value" id="opTime">—</div></div>
       <div class="stat-card"><div class="stat-label">Findings</div><div class="stat-value red" id="opFindings">0</div></div>
     </div>
-    <!-- Phase Chain -->
     <div class="panel">
       <div class="panel-header"><div class="panel-title"><span class="panel-title-dot"></span>PHASE CHAIN</div></div>
-      <div class="panel-body">
-        <div class="phase-chain" id="phaseChain"></div>
-      </div>
+      <div class="panel-body"><div class="phase-chain" id="phaseChain"></div></div>
     </div>
-    <!-- Results -->
     <div class="panel" style="margin-top:12px">
       <div class="panel-header">
-        <div class="panel-title"><span class="panel-title-dot"></span>RESULTS</div>
+        <div class="panel-title"><span class="panel-title-dot"></span>LIVE OUTPUT</div>
         <div style="display:flex;gap:6px">
           <button class="btn btn-cyan" onclick="exportResults()">📥 Export</button>
-          <button class="btn btn-green" onclick="genReport()">📊 Report</button>
           <button class="btn" onclick="newScan()">🔍 New Scan</button>
         </div>
       </div>
-      <div class="panel-body" id="opsResults" style="max-height:500px;overflow-y:auto"></div>
+      <div class="panel-body" id="opsResults" style="max-height:500px;overflow-y:auto;font-family:var(--mono);font-size:.75rem">
+        <div style="color:var(--text3);padding:2rem;text-align:center">No active operation — click "+ New Operation" to begin</div>
+      </div>
     </div>
-    <!-- Operations History -->
     <div class="panel" style="margin-top:12px">
       <div class="panel-header"><div class="panel-title"><span class="panel-title-dot"></span>OPERATION HISTORY</div></div>
       <div class="panel-body" style="overflow-x:auto">
@@ -47,24 +42,27 @@
           <thead><tr><th>Date</th><th>Target</th><th>Type</th><th>Findings</th><th>Duration</th><th>Status</th></tr></thead>
           <tbody id="opsHistory"></tbody>
         </table>
+        <div id="opsHistoryEmpty" style="color:var(--text3);font-family:var(--mono);font-size:.8rem;padding:2rem;text-align:center">No operations yet</div>
       </div>
     </div>
   </div>
 </div>
 <script src="app.js"></script>
+<script src="api.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   renderTopbar('OPERATIONS', '🎯', '<button class="topbar-btn topbar-btn-primary" onclick="newOp()">+ New Operation</button>');
-  const saved = lsGet('ops', []);
+
   const current = lsGet('currentOp', null);
+  const history = lsGet('opsHistory', []);
 
   // Phase chain
   const phases = [
-    { name:'Recon', status: current ? 'done' : 'pending' },
-    { name:'Scanning', status: current ? 'active' : 'pending' },
-    { name:'Exploit', status:'pending' },
-    { name:'Privesc', status:'pending' },
-    { name:'Report', status:'pending' },
+    { name:'Recon', status: current ? (current.progress > 20 ? 'done' : 'active') : 'pending' },
+    { name:'Scanning', status: current ? (current.progress > 40 ? 'done' : current.progress > 20 ? 'active' : 'pending') : 'pending' },
+    { name:'Exploit', status: current ? (current.progress > 60 ? 'done' : current.progress > 40 ? 'active' : 'pending') : 'pending' },
+    { name:'Privesc', status: current ? (current.progress > 80 ? 'done' : current.progress > 60 ? 'active' : 'pending') : 'pending' },
+    { name:'Report', status: current ? (current.progress >= 100 ? 'done' : current.progress > 80 ? 'active' : 'pending') : 'pending' },
   ];
   const icons = { done:'✅', active:'🔄', pending:'⬜' };
   document.getElementById('phaseChain').innerHTML = phases.map((p,i) =>
@@ -75,44 +73,34 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('opTarget').textContent = current.target;
     document.getElementById('opProgress').textContent = current.progress + '%';
     document.getElementById('opBar').style.width = current.progress + '%';
-    document.getElementById('opTime').textContent = current.elapsed;
-    document.getElementById('opFindings').textContent = current.findings;
+    document.getElementById('opTime').textContent = current.elapsed || '—';
+    document.getElementById('opFindings').textContent = current.findings || 0;
+    if (current.output) {
+      document.getElementById('opsResults').innerHTML = current.output.map(line =>
+        `<div style="padding:2px 0;color:var(--text2)">${line}</div>`
+      ).join('');
+    }
   }
 
-  // Results
-  const results = [
-    { phase:'🔍 RECONNAISSANCE', status:'complete', items:['Subdomains found: 23','Technologies: React, AWS, Cloudflare','WHOIS: redacted via Cloudflare','Email security: SPF ✅ DMARC ✅ DKIM ✅'] },
-    { phase:'🌐 NETWORK SCAN', status:'in progress', items:['Port 80 open — nginx 1.24.0','Port 443 open — Cloudflare proxy','Port 22 open — SSH (brute-force candidate)','Port 8080 open — Tomcat 9.0.74'], progress:68 },
-  ];
-  document.getElementById('opsResults').innerHTML = results.map(r => `
-    <div style="margin-bottom:1.5rem">
-      <div style="font-family:var(--mono);font-size:.8rem;font-weight:600;color:var(--text);margin-bottom:.5rem">${r.phase} <span style="font-size:.65rem;color:${r.status==='complete'?'var(--green)':'var(--cyan)'}; margin-left:8px">(${r.status})</span></div>
-      ${r.items.map(i => `<div style="font-size:.75rem;color:var(--text2);padding:3px 0 3px 1rem;border-left:2px solid var(--border)">├── ${i}</div>`).join('')}
-      ${r.progress ? `<div class="progress" style="margin-top:6px;max-width:400px"><div class="progress-bar" style="width:${r.progress}%"></div></div><div style="font-size:.6rem;color:var(--text3);font-family:var(--mono);margin-top:3px">${r.progress}%</div>` : ''}
-    </div>
-  `).join('');
-
-  // History
-  const history = [
-    { date:'2026-05-04', target:'acme.com', type:'Full Pentest', findings:12, duration:'4h 22m', status:'Completed' },
-    { date:'2026-04-28', target:'test.io', type:'Web Only', findings:7, duration:'2h 14m', status:'Completed' },
-    { date:'2026-04-15', target:'lab.local', type:'Network', findings:4, duration:'1h 45m', status:'Completed' },
-  ];
-  document.getElementById('opsHistory').innerHTML = history.map(h => `
-    <tr>
-      <td>${h.date}</td><td style="color:var(--cyan)">${h.target}</td><td>${h.type}</td>
-      <td><span class="tbl-badge ${h.findings > 8 ? 'badge-high' : 'badge-med'}">${h.findings}</span></td>
-      <td>${h.duration}</td><td><span class="tbl-badge badge-low">${h.status}</span></td>
-    </tr>
-  `).join('');
+  // History (from localStorage only — real data)
+  if (history.length > 0) {
+    document.getElementById('opsHistoryEmpty').style.display = 'none';
+    document.getElementById('opsHistory').innerHTML = history.map(h => `
+      <tr>
+        <td>${h.date}</td><td style="color:var(--cyan)">${h.target}</td><td>${h.type}</td>
+        <td><span class="tbl-badge ${h.findings > 8 ? 'badge-high' : 'badge-med'}">${h.findings}</span></td>
+        <td>${h.duration}</td><td><span class="tbl-badge badge-low">${h.status}</span></td>
+      </tr>
+    `).join('');
+  }
 });
+
 function newOp() {
   const t = prompt('Target domain/IP for new operation:');
-  if (t) { lsSet('currentOp', { target:t, progress:0, elapsed:'0h 0m', findings:0 }); location.reload(); }
+  if (t) { lsSet('currentOp', { target: t, progress: 0, elapsed: '0h 0m', findings: 0, output: [] }); location.reload(); }
 }
-function exportResults() { alert('Exporting results to JSON...'); }
-function genReport() { location.href = '/reports'; }
-function newScan() { alert('Starting new scan phase...'); }
+function exportResults() { alert('Export coming soon — connect to SIVRAJ API for live data'); }
+function newScan() { newOp(); }
 </script>
 </body>
 </html>

@@ -18,10 +18,10 @@
 
     <!-- STATUS BAR -->
     <div class="dash-status-bar">
-      <div class="dash-status-item"><span class="dash-status-dot dot-online"></span>SYSTEM ONLINE</div>
-      <div class="dash-status-item">UPTIME <span id="dashUptime" class="dash-status-val">0d 00h 00m</span></div>
-      <div class="dash-status-item">VERSION <span class="dash-status-val">4.0.0</span></div>
-      <div class="dash-status-item">TOOLS <span class="dash-status-val">54</span></div>
+      <div class="dash-status-item"><span class="dash-status-dot" id="statusDot"></span><span id="statusText">CONNECTING...</span></div>
+      <div class="dash-status-item">UPTIME <span id="dashUptime" class="dash-status-val">—</span></div>
+      <div class="dash-status-item">VERSION <span class="dash-status-val" id="dashVersion">—</span></div>
+      <div class="dash-status-item">TOOLS <span class="dash-status-val" id="dashTools">—</span></div>
     </div>
 
     <!-- TOP STATS -->
@@ -32,19 +32,19 @@
         <div class="stat-sub"><button class="btn btn-cyan" onclick="setTarget()" style="margin-top:6px">Set Target →</button></div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Live Sensors</div>
-        <div class="stat-value green" id="sensorCount">2<span style="font-size:.7rem;color:var(--text3)"> / 3</span></div>
-        <div class="stat-sub">ESP32-1 🟢 ESP32-2 🟢 ESP32-3 🔴</div>
+        <div class="stat-label">Active Providers</div>
+        <div class="stat-value green" id="providerCount">—</div>
+        <div class="stat-sub" id="providerSub">Waiting for data...</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Findings Today</div>
-        <div class="stat-value amber" id="findingsToday">0</div>
-        <div class="stat-sub">0 critical, 0 high</div>
+        <div class="stat-label">Total Requests</div>
+        <div class="stat-value amber" id="totalRequests">—</div>
+        <div class="stat-sub" id="successRate">—</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Fastest Provider</div>
-        <div class="stat-value" id="fastestProvider">Groq</div>
-        <div class="stat-sub" id="fastestLatency">~120ms</div>
+        <div class="stat-value" id="fastestProvider">—</div>
+        <div class="stat-sub" id="fastestLatency">—</div>
       </div>
     </div>
 
@@ -66,55 +66,38 @@
             <button class="btn btn-cyan" onclick="quickAction('pentest')">🔓 Web Pentest</button>
           </div>
           <div class="panel-footer">
-            <span style="font-size:.65rem;color:var(--text3);font-family:var(--mono)">Last: <span id="lastCmd">nmap -sV 192.168.1.0/24</span> · <span id="lastCmdTime">2m ago</span></span>
+            <span style="font-size:.65rem;color:var(--text3);font-family:var(--mono)">Last: <span id="lastCmd">—</span></span>
           </div>
         </div>
 
-        <!-- NEURAL STATUS -->
+        <!-- NEURAL STATUS (REAL provider data) -->
         <div class="panel" style="margin-top:12px">
           <div class="panel-header">
-            <div class="panel-title"><span class="panel-title-dot"></span>NEURAL STATUS</div>
-            <span style="font-size:.6rem;color:var(--green);font-family:var(--mono)">● LIVE</span>
+            <div class="panel-title"><span class="panel-title-dot"></span>PROVIDER LATENCY</div>
+            <span style="font-size:.6rem;font-family:var(--mono)" id="neuralStatus">⏳ Loading</span>
           </div>
-          <div class="panel-body" id="neuralBars"></div>
-        </div>
-
-        <!-- LIVE SENSORS -->
-        <div class="panel" style="margin-top:12px">
-          <div class="panel-header">
-            <div class="panel-title"><span class="panel-title-dot"></span>LIVE SENSORS</div>
-          </div>
-          <div class="panel-body">
-            <div class="sensor-row-dash"><span class="sensor-k">🌡 Temperature</span><span class="sensor-v" id="dTemp">28.4°C</span></div>
-            <div class="sensor-row-dash"><span class="sensor-k">💧 Humidity</span><span class="sensor-v" id="dHum">62%</span></div>
-            <div class="sensor-row-dash"><span class="sensor-k">🔊 Sound Level</span><span class="sensor-v" id="dSound">42 dB</span></div>
-            <div class="sensor-row-dash"><span class="sensor-k">👁 Motion</span><span class="sensor-v" id="dMotion">No activity</span></div>
+          <div class="panel-body" id="neuralBars">
+            <div style="color:var(--text3);font-size:.75rem;font-family:var(--mono);padding:1rem;text-align:center">Waiting for provider data...</div>
           </div>
         </div>
       </div>
 
-      <!-- RIGHT: ACTIVITY + LOG -->
+      <!-- RIGHT: REAL ACTIVITY LOG -->
       <div class="dash-col">
-        <!-- RECENT ACTIVITY -->
+        <!-- SYSTEM LOG LIVE (REAL) -->
         <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title"><span class="panel-title-dot"></span>RECENT ACTIVITY</div>
-            <a href="/logs" class="btn" style="font-size:.6rem">View All →</a>
-          </div>
-          <div class="panel-body" style="max-height:240px;overflow-y:auto" id="recentActivity"></div>
-        </div>
-
-        <!-- SYSTEM LOG LIVE -->
-        <div class="panel" style="margin-top:12px">
           <div class="panel-header" style="background:var(--bg)">
             <div class="panel-title">
               <span class="term-dot td-r" style="width:7px;height:7px"></span>
               <span class="term-dot td-y" style="width:7px;height:7px"></span>
               <span class="term-dot td-g" style="width:7px;height:7px"></span>
-              <span style="margin-left:4px">SYSTEM LOG — LIVE</span>
+              <span style="margin-left:4px">SYSTEM LOG</span>
             </div>
+            <span style="font-size:.6rem;font-family:var(--mono)" id="logStatus">⏳ Connecting</span>
           </div>
-          <div class="panel-body" style="font-family:var(--mono);font-size:.72rem;max-height:280px;overflow-y:auto;background:var(--bg)" id="syslogLive"></div>
+          <div class="panel-body" style="font-family:var(--mono);font-size:.72rem;max-height:500px;overflow-y:auto;background:var(--bg)" id="syslogLive">
+            <div class="syslog-line"><span class="ts">[--:--:--]</span><span class="tag tag-system">SYSTEM</span><span class="msg">Connecting to SIVRAJ agent...</span></div>
+          </div>
         </div>
       </div>
     </div>
@@ -127,117 +110,180 @@
 .dash-status-val{color:var(--text2)}
 .dash-status-dot{width:6px;height:6px;border-radius:50%}
 .dot-online{background:var(--green);box-shadow:0 0 8px rgba(16,185,129,0.5);animation:s-pulse 3s ease-in-out infinite}
+.dot-offline{background:var(--red);box-shadow:0 0 8px rgba(239,68,68,0.5);animation:s-pulse 2s ease-in-out infinite}
+.dot-connecting{background:var(--amber);animation:s-pulse 1s ease-in-out infinite}
 .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .dash-col{display:flex;flex-direction:column}
-.sensor-row-dash{display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;border-bottom:1px solid var(--border)}
-.sensor-row-dash:last-child{border:none}
-.sensor-k{font-size:.78rem;color:var(--text2)}
-.sensor-v{font-family:var(--mono);font-size:.82rem;color:var(--text);font-weight:500}
 .neural-row{display:flex;align-items:center;gap:10px;margin-bottom:.6rem}
 .neural-name{font-family:var(--mono);font-size:.72rem;color:var(--text2);width:100px;flex-shrink:0}
 .neural-bar-wrap{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
 .neural-bar{height:100%;border-radius:3px;transition:width 1s ease}
 .neural-ms{font-family:var(--mono);font-size:.68rem;color:var(--text3);width:55px;text-align:right}
 .neural-badge{font-size:.55rem;padding:1px 6px;border-radius:100px;font-family:var(--mono);font-weight:600}
-.activity-row{display:flex;gap:8px;padding:.35rem 0;border-bottom:1px solid var(--border);font-size:.75rem;align-items:flex-start}
-.activity-row:last-child{border:none}
-.activity-ts{font-family:var(--mono);font-size:.65rem;color:var(--text3);flex-shrink:0;padding-top:1px}
-.activity-icon{flex-shrink:0}
-.activity-msg{color:var(--text2);flex:1}
+.neural-meta{font-family:var(--mono);font-size:.6rem;color:var(--text3)}
 .syslog-line{display:flex;gap:6px;padding:2px 0;color:var(--text3);font-size:.72rem}
 .syslog-line .ts{color:var(--text3);flex-shrink:0}
-.syslog-line .tag{font-weight:600;width:50px;flex-shrink:0}
+.syslog-line .tag{font-weight:600;width:55px;flex-shrink:0}
 .syslog-line .msg{color:var(--text2);flex:1}
-.tag-stt{color:#60a5fa}.tag-llm{color:var(--cyan)}.tag-action{color:var(--green)}.tag-esp32{color:var(--amber)}.tag-system{color:var(--text)}
+.tag-stt{color:#60a5fa}.tag-llm{color:var(--cyan)}.tag-tool{color:var(--green)}.tag-esp32{color:var(--amber)}.tag-system{color:var(--text)}.tag-cic{color:var(--purple)}.tag-error{color:var(--red)}.tag-auth{color:#a78bfa}
 @media(max-width:900px){.dash-grid{grid-template-columns:1fr}}
 </style>
 
 <script src="app.js"></script>
+<script src="api.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   renderTopbar('DASHBOARD', '◆', '<button class="topbar-btn topbar-btn-primary" onclick="location.href=\'/terminal\'">▸ Terminal</button>');
 
-  // Neural bars
-  const providers = [
-    { name:'Groq/Llama', ms:120, color:'var(--green)', best:true },
-    { name:'Gemini', ms:210, color:'var(--cyan)' },
-    { name:'DeepSeek', ms:280, color:'var(--purple)' },
-    { name:'GPT-4o', ms:380, color:'var(--amber)' },
-    { name:'Claude', ms:420, color:'var(--text2)' },
-  ];
-  const maxMs = 500;
-  document.getElementById('neuralBars').innerHTML = providers.map(p => `
-    <div class="neural-row">
-      <span class="neural-name">${p.name}</span>
-      <div class="neural-bar-wrap"><div class="neural-bar" style="width:${(p.ms/maxMs)*100}%;background:${p.color}"></div></div>
-      <span class="neural-ms">${p.ms}ms</span>
-      ${p.best ? '<span class="neural-badge" style="background:rgba(16,185,129,0.12);color:var(--green);border:1px solid rgba(16,185,129,0.2)">FASTEST</span>' : ''}
-    </div>
-  `).join('');
+  // Restore active target from localStorage
+  const savedTarget = lsGet('activeTarget', null);
+  if (savedTarget) document.getElementById('activeTarget').textContent = savedTarget;
 
-  // Recent activity
-  const activities = [
-    { ts:'23:02:57', icon:'🛡', msg:'nmap scan completed — 23 hosts, 47 open ports' },
-    { ts:'23:01:12', icon:'🔓', msg:'breach_check — found in 3 breaches' },
-    { ts:'22:58:40', icon:'🌐', msg:'OSINT lookup — 5 social profiles discovered' },
-    { ts:'22:55:10', icon:'⚠', msg:'deauth detected on ESP32-2 — logged' },
-    { ts:'22:50:03', icon:'📊', msg:'workflow_full_recon completed for target.com' },
-    { ts:'22:45:22', icon:'🔍', msg:'google_dorking — 12 results for admin panels' },
-    { ts:'22:40:15', icon:'💀', msg:'sqli_exploit — 3 injectable parameters found' },
-    { ts:'22:35:44', icon:'📡', msg:'ESP32-1 firmware update complete' },
-  ];
-  document.getElementById('recentActivity').innerHTML = activities.map(a => `
-    <div class="activity-row">
-      <span class="activity-ts">[${a.ts}]</span>
-      <span class="activity-icon">${a.icon}</span>
-      <span class="activity-msg">${a.msg}</span>
-    </div>
-  `).join('');
+  // ─── Main data loop — poll every 5 seconds ─────────────────
+  async function refreshDashboard() {
+    const status = await api.getStatus();
 
-  // System log live
-  const logLines = [
-    { ts:'23:02:57', tag:'STT', cls:'tag-stt', msg:'transcription complete — "scan the network"' },
-    { ts:'23:02:57', tag:'LLM', cls:'tag-llm', msg:'intent: network_scan | entity: 192.168.1.0/24' },
-    { ts:'23:02:58', tag:'ACTION', cls:'tag-action', msg:'nmap -sV 192.168.1.0/24 — started' },
-    { ts:'23:03:14', tag:'ACTION', cls:'tag-action', msg:'nmap complete — 23 hosts up, 47 ports' },
-    { ts:'23:03:15', tag:'ESP32', cls:'tag-esp32', msg:'relay: lights ON, fan OFF, AC OFF' },
-    { ts:'23:03:15', tag:'SYSTEM', cls:'tag-system', msg:'memory ingested: 3 chunks (importance: 7)' },
-  ];
-  const logEl = document.getElementById('syslogLive');
-  let idx = 0;
-  function addLog() {
-    const l = logLines[idx % logLines.length];
-    const now = new Date().toLocaleTimeString('en-IN', { hour12:false });
-    const div = document.createElement('div');
-    div.className = 'syslog-line';
-    div.innerHTML = `<span class="ts">[${now}]</span><span class="tag ${l.cls}">${l.tag}</span><span class="msg">${l.msg}</span>`;
-    logEl.appendChild(div);
-    if (logEl.children.length > 30) logEl.removeChild(logEl.firstChild);
+    if (!status) {
+      // OFFLINE
+      document.getElementById('statusDot').className = 'dash-status-dot dot-offline';
+      document.getElementById('statusText').textContent = 'AGENT OFFLINE';
+      document.getElementById('dashUptime').textContent = '—';
+      document.getElementById('dashVersion').textContent = '—';
+      document.getElementById('dashTools').textContent = '—';
+      document.getElementById('providerCount').textContent = '—';
+      document.getElementById('providerSub').textContent = 'Agent not running';
+      document.getElementById('totalRequests').textContent = '—';
+      document.getElementById('successRate').textContent = '—';
+      document.getElementById('fastestProvider').textContent = '—';
+      document.getElementById('fastestLatency').textContent = '—';
+      document.getElementById('neuralStatus').innerHTML = '<span style="color:var(--red)">● OFFLINE</span>';
+      document.getElementById('logStatus').innerHTML = '<span style="color:var(--red)">● OFFLINE</span>';
+      showOfflineBanner();
+      return;
+    }
+
+    // ONLINE — populate with REAL data
+    hideOfflineBanner();
+    document.getElementById('statusDot').className = 'dash-status-dot dot-online';
+    document.getElementById('statusText').textContent = 'SYSTEM ONLINE';
+    document.getElementById('dashUptime').textContent = formatUptime(status.uptime);
+    document.getElementById('dashVersion').textContent = status.version || 'v4.0';
+    document.getElementById('dashTools').textContent = status.toolsLoaded || '—';
+
+    // Provider stats
+    const providers = status.providers || [];
+    document.getElementById('providerCount').textContent = providers.length;
+    document.getElementById('providerSub').textContent = providers.length > 0
+      ? providers.map(p => p.name).join(', ')
+      : 'No providers active';
+
+    // Telemetry
+    if (status.telemetry) {
+      document.getElementById('totalRequests').textContent = status.telemetry.totalRequests;
+      document.getElementById('successRate').textContent = `${status.telemetry.successRate}% success rate`;
+    }
+
+    // Fastest
+    if (status.fastestProvider) {
+      document.getElementById('fastestProvider').textContent = status.fastestProvider;
+      document.getElementById('fastestLatency').textContent = `~${status.fastestLatency}ms`;
+    } else {
+      document.getElementById('fastestProvider').textContent = '—';
+      document.getElementById('fastestLatency').textContent = 'No data yet';
+    }
+
+    // Neural bars (REAL latency data)
+    if (providers.length > 0) {
+      document.getElementById('neuralStatus').innerHTML = '<span style="color:var(--green)">● LIVE</span>';
+      const maxMs = Math.max(500, ...providers.map(p => p.avgMs));
+      const colors = ['var(--green)', 'var(--cyan)', 'var(--purple)', 'var(--amber)', 'var(--text2)', 'var(--red)'];
+      document.getElementById('neuralBars').innerHTML = providers.map((p, i) => `
+        <div class="neural-row">
+          <span class="neural-name">${p.name}</span>
+          <div class="neural-bar-wrap"><div class="neural-bar" style="width:${(p.avgMs / maxMs) * 100}%;background:${colors[i % colors.length]}"></div></div>
+          <span class="neural-ms">${p.avgMs}ms</span>
+          ${i === 0 ? '<span class="neural-badge" style="background:rgba(16,185,129,0.12);color:var(--green);border:1px solid rgba(16,185,129,0.2)">FASTEST</span>' : ''}
+        </div>
+        <div class="neural-meta" style="margin-bottom:.8rem;margin-left:110px">${p.requests} calls · ${p.successRate}% success · health: ${p.healthScore}/100</div>
+      `).join('');
+    } else {
+      document.getElementById('neuralBars').innerHTML = '<div style="color:var(--text3);font-size:.75rem;font-family:var(--mono);padding:1rem;text-align:center">No provider data yet — make a request to populate</div>';
+    }
+  }
+
+  // ─── Real log polling ──────────────────────────────────────
+  async function refreshLogs() {
+    const data = await api.getLogs(30);
+    const logEl = document.getElementById('syslogLive');
+
+    if (data.logs.length === 0) {
+      if (!api.isOnline()) {
+        logEl.innerHTML = '<div class="syslog-line"><span class="ts">[--:--:--]</span><span class="tag tag-system">SYSTEM</span><span class="msg">Agent offline — no logs available</span></div>';
+      }
+      return;
+    }
+
+    document.getElementById('logStatus').innerHTML = '<span style="color:var(--green)">● LIVE</span>';
+    const tagCls = (src) => {
+      const map = { STT: 'tag-stt', LLM: 'tag-llm', TOOL: 'tag-tool', ESP32: 'tag-esp32', SYSTEM: 'tag-system', CIC: 'tag-cic', AUTH: 'tag-auth', ERROR: 'tag-error' };
+      return map[src] || 'tag-system';
+    };
+
+    logEl.innerHTML = data.logs.map(l => `
+      <div class="syslog-line">
+        <span class="ts">[${l.ts}]</span>
+        <span class="tag ${tagCls(l.src)}">${l.src}</span>
+        <span class="msg">${l.msg}</span>
+      </div>
+    `).join('');
     logEl.scrollTop = logEl.scrollHeight;
-    idx++;
   }
-  for (let i = 0; i < 6; i++) addLog();
-  setInterval(addLog, 4000);
 
-  // Uptime
-  const bootTime = Date.now() - (12 * 86400000 + 4 * 3600000);
-  function updUp() {
-    const d = Date.now() - bootTime;
-    const dd = Math.floor(d / 86400000);
-    const hh = Math.floor((d % 86400000) / 3600000);
-    const mm = Math.floor((d % 3600000) / 60000);
-    document.getElementById('dashUptime').textContent = `${dd}d ${String(hh).padStart(2,'0')}h ${String(mm).padStart(2,'0')}m`;
-  }
-  updUp(); setInterval(updUp, 60000);
+  // Initial load + polling
+  refreshDashboard();
+  refreshLogs();
+  setInterval(refreshDashboard, 5000);
+  setInterval(refreshLogs, 3000);
 });
 
-function quickAction(type) {
-  const actions = { scan:'Quick network scan', breach:'Breach check', osint:'OSINT lookup', report:'Generate report', recon:'Full recon workflow', pentest:'Web pentest workflow' };
-  alert(`SIVRAJ → ${actions[type] || type}\n\nThis would trigger the ${type} tool via the API.\nConnect to localhost:3000/api for live execution.`);
+// ─── Quick Actions (REAL — sends to agent) ───────────────────
+async function quickAction(type) {
+  const target = document.getElementById('activeTarget').textContent;
+  if (target === 'NONE' && ['scan', 'osint', 'recon', 'pentest'].includes(type)) {
+    const t = prompt('Enter target domain/IP first:');
+    if (!t) return;
+    document.getElementById('activeTarget').textContent = t;
+    lsSet('activeTarget', t);
+  }
+
+  const currentTarget = document.getElementById('activeTarget').textContent;
+  const commands = {
+    scan: { cmd: 'network_scan', args: { target: currentTarget } },
+    breach: { cmd: 'breach_check', args: { target: prompt('Email to check:') } },
+    osint: { cmd: 'osint_lookup', args: { target: currentTarget } },
+    report: { cmd: 'generate_report', args: { target: currentTarget } },
+    recon: { cmd: 'workflow_full_recon', args: { target: currentTarget } },
+    pentest: { cmd: 'workflow_web_pentest', args: { target: currentTarget } },
+  };
+
+  const c = commands[type];
+  if (!c || !c.args?.target) return;
+
+  document.getElementById('lastCmd').textContent = `${c.cmd} → ${c.args.target} (running...)`;
+  const result = await api.runCommand(c.cmd, c.args);
+  if (result.error) {
+    document.getElementById('lastCmd').textContent = `${c.cmd} → FAILED: ${result.error}`;
+  } else {
+    document.getElementById('lastCmd').textContent = `${c.cmd} → complete`;
+  }
 }
+
 function setTarget() {
   const t = prompt('Enter target domain/IP:');
-  if (t) { document.getElementById('activeTarget').textContent = t; lsSet('activeTarget', t); }
+  if (t) {
+    document.getElementById('activeTarget').textContent = t;
+    lsSet('activeTarget', t);
+  }
 }
 </script>
 </body>
