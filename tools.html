@@ -35,7 +35,9 @@
     </div>
   </div>
 </div>
-<script src="auth.js"></script>\n<script src="app.js"></script>
+<script src="auth.js"></script>
+<script src="app.js"></script>
+<script src="api.js"></script>
 <script>
 const TOOLS = [
   // Phase 0: Core
@@ -145,16 +147,58 @@ function openTool(idx) {
   document.getElementById('modalBody').innerHTML = `
     <div style="font-size:.8rem;color:var(--text2);margin-bottom:1rem">${t.desc}</div>
     <div style="font-family:var(--mono);font-size:.7rem;color:var(--text3);margin-bottom:.5rem">CATEGORY: <span style="color:${CAT_COLORS[t.cat]}">${t.cat}</span></div>
-    <div style="font-family:var(--mono);font-size:.7rem;color:var(--text3);margin-bottom:1rem">USAGE COUNT: ${t.usage}x</div>
-    <div style="font-family:var(--mono);font-size:.7rem;color:var(--text3);margin-bottom:.5rem">INPUT:</div>
-    <input class="input" placeholder="Enter target..." id="modalInput" style="margin-bottom:.5rem"/>
+    <div style="font-family:var(--mono);font-size:.7rem;color:var(--text3);margin-bottom:1rem">USAGE COUNT: ${(lsGet('tool_usage',{})[t.name] || 0)}x</div>
+    <div style="font-family:var(--mono);font-size:.7rem;color:var(--text3);margin-bottom:.5rem">TARGET:</div>
+    <input class="input" placeholder="Enter target (domain, IP, email, URL...)" id="modalInput" style="margin-bottom:.5rem"/>
+    <div id="toolResult" style="display:none;margin-top:1rem;padding:.8rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:.72rem;color:var(--text2);max-height:300px;overflow-y:auto;white-space:pre-wrap"></div>
   `;
-  document.getElementById('modalRun').onclick = () => {
-    const input = document.getElementById('modalInput').value;
-    alert('Running ' + t.name + ' with input: ' + (input || '(none)') + '\n\nConnect to localhost:3000/api for live execution.');
-  };
+  const runBtn = document.getElementById('modalRun');
+  runBtn.textContent = '▸ Run Tool';
+  runBtn.disabled = false;
+  runBtn.style.color = '';
+  runBtn.onclick = () => runTool(t);
   document.getElementById('toolModal').style.display = 'flex';
 }
+
+async function runTool(tool) {
+  const input = document.getElementById('modalInput').value.trim();
+  if (!input) { document.getElementById('modalInput').style.borderColor = 'var(--red)'; return; }
+  document.getElementById('modalInput').style.borderColor = '';
+
+  const runBtn = document.getElementById('modalRun');
+  const resultEl = document.getElementById('toolResult');
+
+  runBtn.disabled = true;
+  runBtn.textContent = '⏳ Executing...';
+  resultEl.style.display = 'block';
+  resultEl.textContent = `[${new Date().toLocaleTimeString()}] Sending ${tool.name} → ${input}...\n`;
+
+  // Track usage
+  const usage = lsGet('tool_usage', {});
+  usage[tool.name] = (usage[tool.name] || 0) + 1;
+  lsSet('tool_usage', usage);
+
+  // Execute via real API
+  const result = await api.runCommand(tool.name, { target: input });
+
+  if (result.error) {
+    resultEl.textContent += `\n❌ ERROR: ${result.error}\n`;
+    if (result.error.includes('offline') || result.error.includes('fetch')) {
+      resultEl.textContent += `\nAgent is not running. Start it:\n  cd sivraj && npm run dev\n`;
+    }
+    runBtn.textContent = '❌ Failed — Retry';
+    runBtn.style.color = 'var(--red)';
+  } else {
+    resultEl.textContent += `\n✅ RESULT:\n${JSON.stringify(result.result || result, null, 2)}\n`;
+    runBtn.textContent = '✅ Complete';
+    runBtn.style.color = 'var(--green)';
+  }
+  runBtn.disabled = false;
+
+  // Refresh usage display
+  renderTools();
+}
+
 function closeModal() { document.getElementById('toolModal').style.display = 'none'; }
 </script>
 </body>
