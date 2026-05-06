@@ -157,6 +157,8 @@
   </style>
 </head>
 <body>
+<script src="auth.js"></script>
+<script>if(!isAuthenticated()){window.location.href='/login';document.documentElement.style.display='none';}</script>
 
 <!-- ═══ LOGIN SCREEN ═══ -->
 <div id="loginScreen">
@@ -231,8 +233,7 @@ const FIREBASE_CONFIG = {
   appId: "1:431077502024:web:a7dfd953da9c9743e07c7d"
 };
 
-// 🔑 ACCESS CODE — Change this to your own secret password
-const ACCESS_CODE = "shivamsnewbestfriend2005";
+const _RC='1b87c51fd248c6ac7decd253702f5e27ab2361bd24e0e6283784539a141c4b47';
 
 // ══════════════════════════════════════════════════════════
 
@@ -242,9 +243,12 @@ const db = firebase.database();
 let isLoggedIn = false;
 
 // ── Auth ─────────────────────────────────────────────
-function attemptLogin() {
+async function attemptLogin() {
   const pass = document.getElementById('passInput').value;
-  if (pass === ACCESS_CODE) {
+  const enc = new TextEncoder().encode(pass);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  const h = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  if (h === _RC) {
     isLoggedIn = true;
     sessionStorage.setItem('sivraj_auth', 'true');
     document.getElementById('loginScreen').style.display = 'none';

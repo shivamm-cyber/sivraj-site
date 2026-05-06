@@ -1,107 +1,49 @@
 // ═══════════════════════════════════════════════════════════════
-// SIVRAJ CIC — Authentication Gate
-// Every page checks this before rendering ANY content.
-// If not authenticated → redirect to /login
+// SIVRAJ CIC — Access Control Module
 // ═══════════════════════════════════════════════════════════════
 
-const AUTH_CONFIG = {
-  // SHA-256 hash of the password (so plaintext isn't in source code)
-  // Default password: "sivraj2026" — change by updating the hash
-  // To generate a new hash: crypto.subtle.digest('SHA-256', new TextEncoder().encode('your-password'))
-  passwordHash: '56956ea9b7d0d7011b36ef165aaf1b36c98972af6dcf68eab2ed534a2b6409f2',
-
-  // Allowed email(s)
-  allowedEmails: ['shivam@sivraj.in', 'shivamm.cyber@gmail.com'],
-
-  // Session duration: 7 days (in milliseconds)
-  sessionDuration: 7 * 24 * 60 * 60 * 1000,
-
-  // Session key in localStorage
-  sessionKey: 'sivraj_auth_session',
+const _0x={
+  _h:'34d36176b537eb1cb1c4cfe505df37bf4c60c77263e28579bff6b55c39f3fb60',
+  _e:['14d66774c34e9f8e797a302e5058230e7e235b37c9bb6015a7956c55ba8fa417','400d0b327b5b4ba9f238dc7187735c2e745bdc9c7754df268dc54bc9e690df11'],
+  _d:604800000,
+  _k:'sivraj_auth_session',
 };
 
-// ─── Hash Helper ─────────────────────────────────────────────
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+async function _hash(s){
+  const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-// ─── Session Management ──────────────────────────────────────
-function getSession() {
-  try {
-    const raw = localStorage.getItem(AUTH_CONFIG.sessionKey);
-    if (!raw) return null;
-    const session = JSON.parse(raw);
-
-    // Check if session is expired
-    if (Date.now() > session.expiresAt) {
-      localStorage.removeItem(AUTH_CONFIG.sessionKey);
-      return null;
-    }
-
-    return session;
-  } catch {
-    return null;
-  }
+function getSession(){
+  try{
+    const r=localStorage.getItem(_0x._k);
+    if(!r)return null;
+    const s=JSON.parse(r);
+    if(Date.now()>s.x){localStorage.removeItem(_0x._k);return null;}
+    return s;
+  }catch{return null;}
 }
 
-function createSession(email) {
-  const session = {
-    email,
-    createdAt: Date.now(),
-    expiresAt: Date.now() + AUTH_CONFIG.sessionDuration,
-    token: crypto.randomUUID(),
-  };
-  localStorage.setItem(AUTH_CONFIG.sessionKey, JSON.stringify(session));
-  return session;
+function createSession(e){
+  const s={e,c:Date.now(),x:Date.now()+_0x._d,t:crypto.randomUUID()};
+  localStorage.setItem(_0x._k,JSON.stringify(s));
+  return s;
 }
 
-function destroySession() {
-  localStorage.removeItem(AUTH_CONFIG.sessionKey);
+function destroySession(){localStorage.removeItem(_0x._k);}
+function isAuthenticated(){return getSession()!==null;}
+
+async function attemptLogin(email,pass){
+  const eh=await _hash(email.toLowerCase().trim());
+  if(!_0x._e.includes(eh))return{success:false,error:'Access denied'};
+  const ph=await _hash(pass);
+  if(ph!==_0x._h)return{success:false,error:'Access denied'};
+  return{success:true,session:createSession(email.toLowerCase().trim())};
 }
 
-// ─── Authentication Check ────────────────────────────────────
-function isAuthenticated() {
-  const session = getSession();
-  return session !== null;
-}
-
-// ─── Login ───────────────────────────────────────────────────
-async function attemptLogin(email, password) {
-  // Validate email
-  const emailLower = email.toLowerCase().trim();
-  if (!AUTH_CONFIG.allowedEmails.includes(emailLower)) {
-    return { success: false, error: 'Access denied — email not authorized' };
-  }
-
-  // Validate password
-  const hash = await hashPassword(password);
-  if (hash !== AUTH_CONFIG.passwordHash) {
-    return { success: false, error: 'Invalid password' };
-  }
-
-  // Create session
-  const session = createSession(emailLower);
-  return { success: true, session };
-}
-
-// ─── Page Guard ──────────────────────────────────────────────
-// Call this on every page EXCEPT login.html
-function requireAuth() {
-  if (!isAuthenticated()) {
-    window.location.href = '/login';
-    // Hide everything while redirecting
-    document.documentElement.style.display = 'none';
-    return false;
-  }
+function requireAuth(){
+  if(!isAuthenticated()){window.location.href='/login';document.documentElement.style.display='none';return false;}
   return true;
 }
 
-// ─── Logout ──────────────────────────────────────────────────
-function logout() {
-  destroySession();
-  window.location.href = '/login';
-}
+function logout(){destroySession();window.location.href='/login';}

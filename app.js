@@ -51,11 +51,14 @@ function renderSidebar() {
   const sb = document.getElementById('appSidebar');
   if (!sb) return;
 
-  // Get logged-in user email
-  let userEmail = '';
+  // Get logged-in user (masked)
+  let userDisplay = '';
   try {
     const session = JSON.parse(localStorage.getItem('sivraj_auth_session') || '{}');
-    userEmail = session.email || '';
+    if (session.e) {
+      const parts = session.e.split('@');
+      userDisplay = parts[0].slice(0, 3) + '***@' + parts[1];
+    }
   } catch {}
 
   let html = `
@@ -83,7 +86,7 @@ function renderSidebar() {
     <div class="sidebar-status">
       <div class="sidebar-status-row"><span>AGENT</span><span class="sidebar-status-val" id="sidebarAgentStatus" style="color:var(--text3)">—</span></div>
       <div class="sidebar-status-row"><span>UPTIME</span><span class="sidebar-status-val" id="sidebarUptime">—</span></div>
-      <div class="sidebar-status-row"><span>USER</span><span class="sidebar-status-val" style="color:var(--cyan);font-size:.55rem">${userEmail || '—'}</span></div>
+      <div class="sidebar-status-row"><span>USER</span><span class="sidebar-status-val" style="color:var(--cyan);font-size:.55rem">${userDisplay || '—'}</span></div>
       <div class="sidebar-status-row" style="margin-top:4px"><span></span><a href="#" onclick="logout();return false" style="color:var(--red);font-family:var(--mono);font-size:.6rem;text-decoration:none">🔒 Logout</a></div>
     </div>`;
   sb.innerHTML = html;
