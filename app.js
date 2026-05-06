@@ -2,6 +2,29 @@
 // SIVRAJ CIC — Shared App Shell
 // ═══════════════════════════════════════════════════════════════
 
+// ─── AUTH GUARD — runs before anything else ──────────────────
+// Every page that loads app.js is protected.
+// login.html does NOT load app.js, so it's not affected.
+(function authGuard() {
+  // auth.js must be loaded before app.js for this to work,
+  // but as a fallback, check localStorage directly
+  if (typeof isAuthenticated === 'function') {
+    if (!isAuthenticated()) {
+      window.location.href = '/login';
+      document.documentElement.style.display = 'none';
+      return;
+    }
+  } else {
+    // Fallback: check session directly
+    try {
+      const raw = localStorage.getItem('sivraj_auth_session');
+      if (!raw) { window.location.href = '/login'; document.documentElement.style.display = 'none'; return; }
+      const s = JSON.parse(raw);
+      if (Date.now() > s.expiresAt) { localStorage.removeItem('sivraj_auth_session'); window.location.href = '/login'; document.documentElement.style.display = 'none'; return; }
+    } catch { window.location.href = '/login'; document.documentElement.style.display = 'none'; return; }
+  }
+})();
+
 const SIVRAJ_API = 'http://localhost:3000/api';
 const PAGES = [
   { id:'dashboard', icon:'◆', label:'Dashboard', href:'/' },
@@ -27,6 +50,14 @@ function renderSidebar() {
   const current = getCurrentPage();
   const sb = document.getElementById('appSidebar');
   if (!sb) return;
+
+  // Get logged-in user email
+  let userEmail = '';
+  try {
+    const session = JSON.parse(localStorage.getItem('sivraj_auth_session') || '{}');
+    userEmail = session.email || '';
+  } catch {}
+
   let html = `
     <div class="sidebar-brand">
       <span class="sidebar-brand-dot"></span>
@@ -50,9 +81,10 @@ function renderSidebar() {
   }
   html += `</div>
     <div class="sidebar-status">
-      <div class="sidebar-status-row"><span>STATUS</span><span class="sidebar-status-val" style="color:var(--green)">● ONLINE</span></div>
+      <div class="sidebar-status-row"><span>AGENT</span><span class="sidebar-status-val" id="sidebarAgentStatus" style="color:var(--text3)">—</span></div>
       <div class="sidebar-status-row"><span>UPTIME</span><span class="sidebar-status-val" id="sidebarUptime">—</span></div>
-      <div class="sidebar-status-row"><span>MEMORY</span><span class="sidebar-status-val" id="sidebarMem">—</span></div>
+      <div class="sidebar-status-row"><span>USER</span><span class="sidebar-status-val" style="color:var(--cyan);font-size:.55rem">${userEmail || '—'}</span></div>
+      <div class="sidebar-status-row" style="margin-top:4px"><span></span><a href="#" onclick="logout();return false" style="color:var(--red);font-family:var(--mono);font-size:.6rem;text-decoration:none">🔒 Logout</a></div>
     </div>`;
   sb.innerHTML = html;
 }
@@ -75,17 +107,31 @@ function updateClock() {
   if (el) el.textContent = new Date().toLocaleTimeString('en-IN', { hour12: false });
 }
 
-// Uptime counter
-const BOOT_TIME = Date.now();
-function updateUptime() {
-  const el = document.getElementById('sidebarUptime');
-  if (!el) return;
-  const diff = Date.now() - BOOT_TIME;
-  const h = Math.floor(diff / 3600000);
-  const m = Math.floor((diff % 3600000) / 60000);
-  el.textContent = `${h}h ${m}m`;
+// Sidebar agent status (polls real API if available)
+async function updateSidebarStatus() {
+  const statusEl = document.getElementById('sidebarAgentStatus');
+  const uptimeEl = document.getElementById('sidebarUptime');
+  if (!statusEl) return;
+
+  // Try the API if api.js is loaded
+  if (typeof api !== 'undefined' && typeof api.getStatus === 'function') {
+    const status = await api.getStatus();
+    if (status && status.online) {
+      statusEl.textContent = '● ONLINE';
+      statusEl.style.color = 'var(--green)';
+      if (uptimeEl && typeof formatUptime === 'function') {
+        uptimeEl.textContent = formatUptime(status.uptime);
+      }
+    } else {
+      statusEl.textContent = '● OFFLINE';
+      statusEl.style.color = 'var(--red)';
+      if (uptimeEl) uptimeEl.textContent = '—';
+    }
+  } else {
+    statusEl.textContent = '—';
+    statusEl.style.color = 'var(--text3)';
+  }
 }
-setInterval(updateUptime, 60000);
 
 // LocalStorage helpers
 function lsGet(key, fallback) { try { return JSON.parse(localStorage.getItem('sivraj_' + key)) || fallback; } catch { return fallback; } }
@@ -94,5 +140,9 @@ function lsSet(key, val) { localStorage.setItem('sivraj_' + key, JSON.stringify(
 // Init
 document.addEventListener('DOMContentLoaded', () => {
   renderSidebar();
-  updateUptime();
+  // Check agent status after a brief delay (let api.js load first)
+  setTimeout(updateSidebarStatus, 1000);
+  // Re-check every 15 seconds
+  setInterval(updateSidebarStatus, 15000);
 });
+

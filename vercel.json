@@ -24,6 +24,7 @@
     { "source": "/hardware", "destination": "/hardware.html" },
     { "source": "/terminal", "destination": "/terminal.html" },
     { "source": "/settings", "destination": "/settings.html" },
-    { "source": "/landing", "destination": "/landing.html" }
+    { "source": "/landing", "destination": "/landing.html" },
+    { "source": "/login", "destination": "/login.html" }
   ]
 }

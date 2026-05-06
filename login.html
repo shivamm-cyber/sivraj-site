@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SIVRAJ — Access Control</title>
+<meta name="description" content="SIVRAJ Command Information Center — Authorized Access Only"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="app.css"/>
+<style>
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;overflow:hidden}
+.login-wrap{width:100%;max-width:420px;padding:2rem}
+.login-brand{text-align:center;margin-bottom:2.5rem}
+.login-brand-name{font-family:var(--mono);font-size:1.8rem;font-weight:800;letter-spacing:6px;color:var(--cyan);text-shadow:0 0 20px rgba(0,240,255,0.3)}
+.login-brand-sub{font-family:var(--mono);font-size:.65rem;color:var(--text3);margin-top:.5rem;letter-spacing:2px}
+.login-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:2rem;position:relative;overflow:hidden}
+.login-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent)}
+.login-title{font-family:var(--mono);font-size:.8rem;font-weight:600;color:var(--text);margin-bottom:1.5rem;text-align:center;letter-spacing:1px}
+.login-field{margin-bottom:1rem}
+.login-label{font-family:var(--mono);font-size:.68rem;color:var(--text3);margin-bottom:.4rem;display:block;letter-spacing:.5px}
+.login-input{width:100%;padding:.7rem 1rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;transition:border-color .2s;box-sizing:border-box}
+.login-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,240,255,0.08)}
+.login-input::placeholder{color:var(--text3)}
+.login-btn{width:100%;padding:.75rem;background:linear-gradient(135deg,rgba(0,240,255,0.15),rgba(0,240,255,0.05));border:1px solid rgba(0,240,255,0.3);border-radius:8px;color:var(--cyan);font-family:var(--mono);font-size:.82rem;font-weight:600;cursor:pointer;letter-spacing:1px;transition:all .2s;margin-top:.5rem}
+.login-btn:hover{background:linear-gradient(135deg,rgba(0,240,255,0.25),rgba(0,240,255,0.1));border-color:var(--cyan);box-shadow:0 0 15px rgba(0,240,255,0.15)}
+.login-btn:active{transform:scale(0.98)}
+.login-btn:disabled{opacity:0.5;cursor:not-allowed}
+.login-error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:6px;padding:.6rem .8rem;font-family:var(--mono);font-size:.72rem;color:#ef4444;margin-bottom:1rem;display:none}
+.login-footer{text-align:center;margin-top:1.5rem;font-family:var(--mono);font-size:.6rem;color:var(--text3);line-height:1.8}
+.login-warning{display:flex;align-items:center;gap:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);border-radius:6px;padding:.5rem .8rem;font-family:var(--mono);font-size:.62rem;color:var(--amber);margin-bottom:1.2rem}
+.scanline{opacity:0.03}
+.login-attempts{font-family:var(--mono);font-size:.6rem;color:var(--text3);text-align:center;margin-top:.8rem}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.shake{animation:shake .3s ease}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+<div class="login-wrap">
+  <div class="login-brand">
+    <div class="login-brand-name">◆ SIVRAJ</div>
+    <div class="login-brand-sub">COMMAND INFORMATION CENTER</div>
+  </div>
+  <div class="login-box" id="loginBox">
+    <div class="login-title">🔒 AUTHORIZED ACCESS ONLY</div>
+    <div class="login-warning">
+      <span>⚠</span>
+      <span>Unauthorized access attempts are logged and monitored</span>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <form id="loginForm" onsubmit="return handleLogin(event)">
+      <div class="login-field">
+        <label class="login-label">EMAIL</label>
+        <input class="login-input" type="email" id="loginEmail" placeholder="operator@sivraj.in" required autocomplete="email"/>
+      </div>
+      <div class="login-field">
+        <label class="login-label">ACCESS CODE</label>
+        <input class="login-input" type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password"/>
+      </div>
+      <button class="login-btn" type="submit" id="loginBtn">▸ AUTHENTICATE</button>
+    </form>
+    <div class="login-attempts" id="loginAttempts"></div>
+  </div>
+  <div class="login-footer">
+    SIVRAJ v4.0 · Autonomous Intelligence System<br/>
+    IP logged · Session expires in 7 days
+  </div>
+</div>
+
+<script src="auth.js"></script>
+<script>
+// If already authenticated, go to dashboard
+if (isAuthenticated()) {
+  window.location.href = '/';
+}
+
+let failedAttempts = parseInt(localStorage.getItem('sivraj_login_attempts') || '0');
+let lockoutUntil = parseInt(localStorage.getItem('sivraj_lockout_until') || '0');
+
+function showError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('loginBox').classList.add('shake');
+  setTimeout(() => document.getElementById('loginBox').classList.remove('shake'), 300);
+}
+
+function hideError() {
+  document.getElementById('loginError').style.display = 'none';
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  hideError();
+
+  // Check lockout
+  if (Date.now() < lockoutUntil) {
+    const remaining = Math.ceil((lockoutUntil - Date.now()) / 1000);
+    showError(`Too many attempts. Try again in ${remaining}s`);
+    return false;
+  }
+
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ VERIFYING...';
+
+  // Small delay to feel more secure
+  await new Promise(r => setTimeout(r, 800));
+
+  const result = await attemptLogin(email, password);
+
+  if (result.success) {
+    btn.textContent = '✅ ACCESS GRANTED';
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color = 'var(--green)';
+
+    // Reset attempts
+    failedAttempts = 0;
+    localStorage.setItem('sivraj_login_attempts', '0');
+
+    // Log successful login
+    console.log(`[AUTH] Login successful: ${email} at ${new Date().toISOString()}`);
+
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 500);
+  } else {
+    failedAttempts++;
+    localStorage.setItem('sivraj_login_attempts', String(failedAttempts));
+
+    // Lockout after 5 failed attempts (30 second lockout)
+    if (failedAttempts >= 5) {
+      lockoutUntil = Date.now() + 30000;
+      localStorage.setItem('sivraj_lockout_until', String(lockoutUntil));
+      showError('Too many failed attempts. Locked for 30 seconds.');
+    } else {
+      showError(result.error);
+    }
+
+    document.getElementById('loginAttempts').textContent = `${failedAttempts}/5 attempts`;
+
+    btn.disabled = false;
+    btn.textContent = '▸ AUTHENTICATE';
+  }
+
+  return false;
+}
+</script>
+</body>
+</html>
